@@ -1,0 +1,18 @@
+{
+    "scripts": {
+        "dev": "encore dev",
+        "watch": "encore dev --watch",
+        "build": "encore production --progress"
+    },
+    "devDependencies": {
+        "@hotwired/stimulus": "^3.2",
+        "@symfony/stimulus-bridge": "^3.2.0 || ^4.0.0",
+        "@symfony/webpack-encore": "^4.0",
+        "autoprefixer": "^10.4",
+        "postcss": "^8.4",
+        "postcss-loader": "^8.1",
+        "tailwindcss": "^3.4",
+        "webpack": "^5.95",
+        "webpack-cli": "^5.1"
+    }
+}

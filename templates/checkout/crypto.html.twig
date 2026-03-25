@@ -1,0 +1,330 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Payroad — Crypto Checkout{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-slate-50 flex items-start justify-center pt-12 pb-12 px-4">
+    <div class="w-full max-w-md space-y-4">
+
+        {# Logo / brand #}
+        <div class="text-center mb-6">
+            <span class="text-xl font-bold tracking-tight text-slate-800">Payroad</span>
+            <span class="mx-2 text-slate-300">·</span>
+            <span class="text-sm text-slate-400">Crypto Checkout</span>
+        </div>
+
+        {# Order summary #}
+        <div class="bg-white rounded-2xl border border-slate-200 px-6 py-5 flex items-center justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-widest text-slate-400 font-medium mb-1">Order total</p>
+                <p class="text-slate-700 text-sm">Demo Product</p>
+            </div>
+            <div class="text-right">
+                <p class="text-2xl font-bold text-slate-900">$10.00</p>
+                <p class="text-xs text-slate-400">USD</p>
+            </div>
+        </div>
+
+        {# Step 1: choose provider + network #}
+        <div id="step-select" class="bg-white rounded-2xl border border-slate-200 px-6 py-6 space-y-5">
+
+            {# Provider tabs #}
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Payment processor</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="tab-nowpayments"
+                            class="provider-tab py-2 px-3 rounded-xl border-2 border-indigo-500 bg-indigo-50
+                                   text-sm font-semibold text-indigo-700 transition-colors"
+                            data-provider="nowpayments">
+                        NOWPayments
+                    </button>
+                    <button id="tab-coingate"
+                            class="provider-tab py-2 px-3 rounded-xl border-2 border-slate-200
+                                   text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors"
+                            data-provider="coingate">
+                        CoinGate
+                    </button>
+                </div>
+            </div>
+
+            {# Network grid — NOWPayments #}
+            <div id="networks-nowpayments">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Currency</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="usdttrc20">
+                        <span class="block text-base">₮</span>USDT (TRC-20)
+                    </button>
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="usdterc20">
+                        <span class="block text-base">₮</span>USDT (ERC-20)
+                    </button>
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="btc">
+                        <span class="block text-base">₿</span>Bitcoin
+                    </button>
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="eth">
+                        <span class="block text-base">Ξ</span>Ethereum
+                    </button>
+                </div>
+            </div>
+
+            {# Network grid — CoinGate #}
+            <div id="networks-coingate" class="hidden">
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Currency</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="USDT">
+                        <span class="block text-base">₮</span>USDT
+                    </button>
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="BTC">
+                        <span class="block text-base">₿</span>Bitcoin
+                    </button>
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="ETH">
+                        <span class="block text-base">Ξ</span>Ethereum
+                    </button>
+                    <button class="network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                   text-sm font-semibold text-slate-700 transition-colors text-left"
+                            data-network="LTC">
+                        <span class="block text-base">Ł</span>Litecoin
+                    </button>
+                </div>
+            </div>
+
+            <div id="select-error" class="hidden p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700"></div>
+
+            <button id="pay-btn"
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed
+                           text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                    disabled>
+                <svg id="pay-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span id="pay-text">Select a currency</span>
+            </button>
+        </div>
+
+        {# Step 2: payment address #}
+        <div id="step-address" class="hidden bg-white rounded-2xl border border-slate-200 px-6 py-6">
+            <p class="text-sm font-semibold text-slate-600 mb-1">Send exact amount to this address</p>
+            <p class="text-xs text-slate-400 mb-5">The payment will be confirmed after blockchain verification.</p>
+
+            <div class="space-y-4">
+                <div>
+                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Amount to send</p>
+                    <p id="addr-amount" class="text-xl font-bold text-slate-900"></p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Wallet address</p>
+                    <div class="flex items-center gap-2">
+                        <code id="addr-wallet" class="flex-1 text-xs font-mono text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 break-all"></code>
+                        <button onclick="copyAddress()"
+                                class="shrink-0 p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                title="Copy address">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="memo-row" class="hidden">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Memo / Tag (required)</p>
+                    <code id="addr-memo" class="text-xs font-mono text-slate-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 block"></code>
+                </div>
+            </div>
+
+            <div class="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
+                <p class="font-semibold">Important</p>
+                <p>Send only the exact amount shown. Do not close this page — payment is confirmed automatically.</p>
+            </div>
+
+            <div class="mt-5 flex items-center gap-2 text-sm text-slate-500">
+                <svg class="animate-spin h-4 w-4 text-indigo-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span id="poll-text">Waiting for payment…</span>
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-slate-400">
+            Processed by <span id="provider-label" class="font-medium">NOWPayments</span>
+        </p>
+
+    </div>
+</div>
+
+<script>
+(() => {
+    let selectedNetwork  = null;
+    let selectedProvider = 'nowpayments';
+
+    // ── Provider tabs ─────────────────────────────────────────────────────────
+
+    document.querySelectorAll('.provider-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            selectedProvider = tab.dataset.provider;
+            selectedNetwork  = null;
+
+            document.querySelectorAll('.provider-tab').forEach(t => {
+                const active = t === tab;
+                t.classList.toggle('border-indigo-500', active);
+                t.classList.toggle('bg-indigo-50',       active);
+                t.classList.toggle('text-indigo-700',    active);
+                t.classList.toggle('border-slate-200',   !active);
+                t.classList.toggle('text-slate-600',     !active);
+            });
+
+            document.getElementById('networks-nowpayments').classList.toggle('hidden', selectedProvider !== 'nowpayments');
+            document.getElementById('networks-coingate').classList.toggle('hidden',    selectedProvider !== 'coingate');
+            document.getElementById('provider-label').textContent = tab.textContent.trim();
+
+            // Deselect any previously selected network button
+            document.querySelectorAll('.network-btn').forEach(b => b.classList.remove('border-indigo-500', 'bg-indigo-50'));
+            document.getElementById('pay-btn').disabled = true;
+            document.getElementById('pay-text').textContent = 'Select a currency';
+            hideError();
+        });
+    });
+
+    // ── Network selection ─────────────────────────────────────────────────────
+
+    document.querySelectorAll('.network-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Only react to buttons in the visible network grid
+            const parentGrid = btn.closest('[id^="networks-"]');
+            if (parentGrid && parentGrid.classList.contains('hidden')) return;
+
+            document.querySelectorAll('.network-btn').forEach(b => b.classList.remove('border-indigo-500', 'bg-indigo-50'));
+            btn.classList.add('border-indigo-500', 'bg-indigo-50');
+            selectedNetwork = btn.dataset.network;
+            document.getElementById('pay-btn').disabled = false;
+            document.getElementById('pay-text').textContent = 'Generate payment address';
+            hideError();
+        });
+    });
+
+    // ── Pay button ────────────────────────────────────────────────────────────
+
+    document.getElementById('pay-btn').addEventListener('click', async () => {
+        if (!selectedNetwork) return;
+
+        setLoading(true);
+        hideError();
+
+        try {
+            const res = await fetch('/api/payments/crypto', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    amount:     1000,
+                    currency:   'USD',
+                    customerId: 'demo-customer',
+                    network:    selectedNetwork,
+                    provider:   selectedProvider,
+                }),
+            });
+
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.detail || body.error || 'Could not create payment (' + res.status + ')');
+            }
+
+            const data = await res.json();
+            showAddress(data);
+            startPolling(data.paymentId);
+
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    // ── Show address card ─────────────────────────────────────────────────────
+
+    function showAddress(data) {
+        document.getElementById('step-select').classList.add('hidden');
+        document.getElementById('step-address').classList.remove('hidden');
+
+        document.getElementById('addr-amount').textContent = data.payAmount + ' ' + data.payCurrency.toUpperCase();
+        document.getElementById('addr-wallet').textContent = data.walletAddress;
+
+        if (data.memo) {
+            document.getElementById('addr-memo').textContent = data.memo;
+            document.getElementById('memo-row').classList.remove('hidden');
+        }
+    }
+
+    window.copyAddress = function () {
+        const addr = document.getElementById('addr-wallet').textContent;
+        navigator.clipboard.writeText(addr).catch(() => {});
+    };
+
+    // ── Polling ───────────────────────────────────────────────────────────────
+
+    function startPolling(pmtId) {
+        const TERMINAL = ['succeeded', 'failed', 'expired', 'canceled'];
+        const INTERVAL = 5000;
+        const MAX      = 120;
+        let   count    = 0;
+
+        const timer = setInterval(async () => {
+            if (++count > MAX) {
+                clearInterval(timer);
+                document.getElementById('poll-text').textContent = 'Timed out — check blockchain manually.';
+                return;
+            }
+            try {
+                const res = await fetch('/api/payments/' + pmtId);
+                if (!res.ok) return;
+                const payment = await res.json();
+
+                const msgs = {
+                    pending: 'Waiting for payment…', processing: 'Detected — awaiting confirmations…',
+                    succeeded: 'Confirmed! Redirecting…', failed: 'Payment failed.', expired: 'Invoice expired.',
+                };
+                document.getElementById('poll-text').textContent = msgs[payment.status] ?? 'Checking…';
+
+                if (TERMINAL.includes(payment.status)) {
+                    clearInterval(timer);
+                    window.location.href = '/checkout/return?paymentId=' + pmtId;
+                }
+            } catch (_) {}
+        }, INTERVAL);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function setLoading(on) {
+        document.getElementById('pay-btn').disabled = on;
+        document.getElementById('pay-spinner').classList.toggle('hidden', !on);
+        document.getElementById('pay-text').textContent = on ? 'Creating invoice…' : 'Generate payment address';
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('select-error');
+        el.textContent = msg;
+        el.classList.remove('hidden');
+    }
+
+    function hideError() {
+        document.getElementById('select-error').classList.add('hidden');
+    }
+})();
+</script>
+{% endblock %}

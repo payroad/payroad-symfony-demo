@@ -1,0 +1,57 @@
+parameters:
+    stripe.publishable_key: '%env(STRIPE_PUBLISHABLE_KEY)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Infrastructure/Persistence/Entity/'
+            - '../src/Kernel.php'
+
+    # ── Domain event dispatcher ───────────────────────────────────────────────
+
+    App\Infrastructure\Event\MessengerDomainEventDispatcher:
+        arguments:
+            $eventBus: '@event.bus'
+
+    Payroad\Port\Event\DomainEventDispatcherInterface:
+        alias: App\Infrastructure\Event\MessengerDomainEventDispatcher
+
+    # ── Domain use cases (payroad-core, outside App\ namespace) ──────────────
+
+    Payroad\Application\UseCase\Payment\CreatePaymentUseCase: ~
+    Payroad\Application\UseCase\Payment\CancelPaymentUseCase: ~
+    Payroad\Application\UseCase\Payment\ExpirePaymentUseCase: ~
+    Payroad\Application\UseCase\Card\InitiateCardAttemptUseCase: ~
+    Payroad\Application\UseCase\Card\InitiateCardAttemptWithSavedMethodUseCase: ~
+    Payroad\Application\UseCase\Card\CaptureCardAttemptUseCase: ~
+    Payroad\Application\UseCase\Card\VoidCardAttemptUseCase: ~
+    Payroad\Application\UseCase\Card\InitiateCardRefundUseCase: ~
+    Payroad\Application\UseCase\Card\SavePaymentMethodUseCase: ~
+    Payroad\Application\UseCase\Crypto\InitiateCryptoAttemptUseCase: ~
+    Payroad\Application\UseCase\Crypto\InitiateCryptoRefundUseCase: ~
+    Payroad\Application\UseCase\Cash\InitiateCashAttemptUseCase: ~
+    Payroad\Application\UseCase\Cash\InitiateCashRefundUseCase: ~
+    Payroad\Application\UseCase\Webhook\HandleWebhookUseCase: ~
+    Payroad\Application\UseCase\Webhook\HandleRefundWebhookUseCase: ~
+    Payroad\Application\UseCase\Shared\AttemptInitiationGuard: ~
+    Payroad\Application\UseCase\Shared\RefundInitiationGuard: ~
+
+    # ── Repositories ──────────────────────────────────────────────────────────
+
+    Payroad\Port\Repository\PaymentRepositoryInterface:
+        alias: App\Infrastructure\Persistence\Repository\DoctrinePaymentRepository
+
+    Payroad\Port\Repository\PaymentAttemptRepositoryInterface:
+        alias: App\Infrastructure\Persistence\Repository\DoctrinePaymentAttemptRepository
+
+    Payroad\Port\Repository\RefundRepositoryInterface:
+        alias: App\Infrastructure\Persistence\Repository\DoctrineRefundRepository
+
+    Payroad\Port\Repository\SavedPaymentMethodRepositoryInterface:
+        alias: App\Infrastructure\Persistence\Repository\DoctrineSavedPaymentMethodRepository

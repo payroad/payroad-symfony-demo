@@ -1,0 +1,2 @@
+payroad:
+    resource: '@PayroadBundle/Resources/config/routes.yaml'

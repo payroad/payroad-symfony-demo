@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                  https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Infrastructure\Persistence\Entity\PaymentEntity" table="payments">
+        <id name="id" type="string" column="id" length="36"/>
+
+        <field name="amountMinor"            type="integer" column="amount_minor"/>
+        <field name="amountCurrencyCode"     type="string"  column="amount_currency_code"      length="10"/>
+        <field name="amountCurrencyPrecision" type="integer" column="amount_currency_precision"/>
+        <field name="customerId"             type="string"  column="customer_id"               length="255"/>
+        <field name="status"                 type="string"  column="status"                    length="30"/>
+        <field name="successfulAttemptId"    type="string"  column="successful_attempt_id"     length="36"  nullable="true"/>
+        <field name="metadata"               type="json"    column="metadata"/>
+        <field name="createdAt"              type="datetime_immutable" column="created_at"/>
+        <field name="expiresAt"              type="datetime_immutable" column="expires_at"      nullable="true"/>
+        <field name="refundedAmountMinor"    type="integer" column="refunded_amount_minor"/>
+        <field name="version"                type="integer" column="version"/>
+    </entity>
+
+</doctrine-mapping>

@@ -1,0 +1,991 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Payroad — Checkout{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-slate-50 flex items-start justify-center pt-12 pb-12 px-4">
+    <div class="w-full max-w-md space-y-4">
+
+        {# Header #}
+        <div class="flex items-center justify-between mb-6">
+            <a href="/dashboard" class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Dashboard
+            </a>
+            <div class="text-center">
+                <span class="text-xl font-bold tracking-tight text-slate-800">Payroad</span>
+                <span class="mx-2 text-slate-300">·</span>
+                <span class="text-sm text-slate-400">Secure Checkout</span>
+            </div>
+            <div class="w-16"></div>
+        </div>
+
+        {# Amount card #}
+        <div class="bg-white rounded-2xl border border-slate-200 px-6 py-5">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400 font-medium mb-1">Order total</p>
+                    <p class="text-slate-700 text-sm">Demo Product</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input id="amount-input" type="number" min="1" step="0.01" value="10.00"
+                           class="w-28 text-2xl font-bold text-slate-900 text-right border-0 border-b-2
+                                  border-slate-200 focus:border-indigo-400 focus:outline-none bg-transparent
+                                  pb-0.5 transition-colors">
+                    <span class="text-xs text-slate-400">USD</span>
+                </div>
+            </div>
+        </div>
+
+        {# Method selector #}
+        <div class="grid grid-cols-3 gap-2">
+            <button id="tab-card"
+                    class="method-tab py-2.5 px-4 rounded-xl border-2 border-indigo-500 bg-indigo-50
+                           text-sm font-semibold text-indigo-700 transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                Card
+            </button>
+            <button id="tab-crypto"
+                    class="method-tab py-2.5 px-4 rounded-xl border-2 border-slate-200
+                           text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Crypto
+            </button>
+            <button id="tab-cash"
+                    class="method-tab py-2.5 px-4 rounded-xl border-2 border-slate-200
+                           text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Cash
+            </button>
+        </div>
+
+        {# ── Card panel ──────────────────────────────────────────────────────── #}
+        <div id="panel-card" class="space-y-4">
+
+            {# Processor selector #}
+            <div class="grid grid-cols-2 gap-2">
+                <button id="proc-stripe"
+                        class="proc-tab py-2 px-3 rounded-xl border-2 border-indigo-500 bg-indigo-50
+                               text-sm font-semibold text-indigo-700 transition-colors">
+                    Stripe
+                </button>
+                <button id="proc-braintree"
+                        class="proc-tab py-2 px-3 rounded-xl border-2 border-slate-200
+                               text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors">
+                    Braintree
+                </button>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 px-6 py-6">
+                <p class="text-sm font-semibold text-slate-600 mb-4">Payment details</p>
+
+                {# Loading skeleton #}
+                <div id="card-loading" class="space-y-3 pb-2">
+                    <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+                    <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+                        <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+                    </div>
+                </div>
+
+                <form id="card-form" class="hidden">
+                    <div id="payment-element" class="mb-5"></div>
+
+                    <div id="card-error-box" class="hidden mb-4 flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-100">
+                        <svg class="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/>
+                        </svg>
+                        <p id="card-error-text" class="text-sm text-red-700"></p>
+                    </div>
+
+                    <button id="card-submit-btn" type="submit"
+                            class="w-full flex items-center justify-center gap-2
+                                   bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
+                                   disabled:opacity-60 disabled:cursor-not-allowed
+                                   text-white text-sm font-semibold py-3 px-6 rounded-xl
+                                   transition-colors duration-150">
+                        <svg id="card-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span id="card-btn-text">Pay $10.00</span>
+                    </button>
+                </form>
+                {# Braintree Drop-in container #}
+                <div id="braintree-section" class="hidden">
+                    <div id="braintree-loading" class="space-y-3 pb-2">
+                        <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+                        <div class="h-10 bg-slate-100 rounded-lg animate-pulse"></div>
+                    </div>
+                    <div id="braintree-dropin"></div>
+                    <div id="braintree-error-box" class="hidden mt-3 flex items-start gap-2 p-3 rounded-xl bg-red-50 border border-red-100">
+                        <p id="braintree-error-text" class="text-sm text-red-700"></p>
+                    </div>
+                    <button id="braintree-submit-btn" type="button"
+                            class="mt-5 w-full flex items-center justify-center gap-2
+                                   bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed
+                                   text-white text-sm font-semibold py-3 px-6 rounded-xl transition-colors hidden">
+                        <svg id="braintree-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span id="braintree-btn-text">Pay $10.00</span>
+                    </button>
+                </div>
+
+            </div>
+
+            {# Test cards #}
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+                <p class="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wide">Test cards</p>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-amber-700">Success</span>
+                        <span class="font-mono text-amber-900">4242 4242 4242 4242</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-amber-700">3DS required</span>
+                        <span class="font-mono text-amber-900">4000 0027 6000 3184</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-amber-700">Declined</span>
+                        <span class="font-mono text-amber-900">4000 0000 0000 9995</span>
+                    </div>
+                    <div class="flex justify-between border-t border-amber-200 pt-2 mt-1">
+                        <span class="text-amber-600">Expiry / CVC / ZIP</span>
+                        <span class="text-amber-600">any future date · any 3 digits · any</span>
+                    </div>
+                </div>
+            </div>
+
+            {# Braintree test cards — visible only when Braintree selected #}
+            <div id="braintree-hints" class="hidden rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+                <p class="text-xs font-semibold text-amber-700 mb-3 uppercase tracking-wide">Braintree test cards</p>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between">
+                        <span class="text-amber-700">Success</span>
+                        <span class="font-mono text-amber-900">4111 1111 1111 1111</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-amber-700">Processor declined</span>
+                        <span class="font-mono text-amber-900">4000 1111 1111 1115</span>
+                    </div>
+                    <div class="flex justify-between border-t border-amber-200 pt-2 mt-1">
+                        <span class="text-amber-600">Expiry / CVV</span>
+                        <span class="text-amber-600">any future date · any 3 digits</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>{# end #panel-card #}
+
+        {# ── Crypto panel ────────────────────────────────────────────────────── #}
+        <div id="panel-crypto" class="hidden space-y-4">
+
+            {# Step: select provider + network #}
+            <div id="crypto-step-select" class="bg-white rounded-2xl border border-slate-200 px-6 py-6 space-y-5">
+
+                {# Provider tabs #}
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Payment processor</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="crypto-tab-nowpayments"
+                                class="crypto-provider-tab py-2 px-3 rounded-xl border-2 border-indigo-500 bg-indigo-50
+                                       text-sm font-semibold text-indigo-700 transition-colors"
+                                data-provider="nowpayments">
+                            NOWPayments
+                        </button>
+                        <button id="crypto-tab-coingate"
+                                class="crypto-provider-tab py-2 px-3 rounded-xl border-2 border-slate-200
+                                       text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors"
+                                data-provider="coingate">
+                            CoinGate
+                        </button>
+                    </div>
+                </div>
+
+                {# Network grid — NOWPayments #}
+                <div id="crypto-networks-nowpayments">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Currency</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="usdttrc20">
+                            <span class="block text-base">₮</span>USDT (TRC-20)
+                        </button>
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="usdterc20">
+                            <span class="block text-base">₮</span>USDT (ERC-20)
+                        </button>
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="btc">
+                            <span class="block text-base">₿</span>Bitcoin
+                        </button>
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="eth">
+                            <span class="block text-base">Ξ</span>Ethereum
+                        </button>
+                    </div>
+                </div>
+
+                {# Network grid — CoinGate #}
+                <div id="crypto-networks-coingate" class="hidden">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Currency</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="USDT">
+                            <span class="block text-base">₮</span>USDT
+                        </button>
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="BTC">
+                            <span class="block text-base">₿</span>Bitcoin
+                        </button>
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="ETH">
+                            <span class="block text-base">Ξ</span>Ethereum
+                        </button>
+                        <button class="crypto-network-btn py-3 px-4 rounded-xl border-2 border-slate-200 hover:border-indigo-400
+                                       text-sm font-semibold text-slate-700 transition-colors text-left"
+                                data-network="LTC">
+                            <span class="block text-base">Ł</span>Litecoin
+                        </button>
+                    </div>
+                </div>
+
+                <div id="crypto-select-error" class="hidden p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700"></div>
+
+                <button id="crypto-pay-btn"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed
+                               text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                        disabled>
+                    <svg id="crypto-pay-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span id="crypto-pay-text">Select a currency</span>
+                </button>
+            </div>
+
+            {# Step: NOWPayments — wallet address #}
+            <div id="crypto-step-address" class="hidden bg-white rounded-2xl border border-slate-200 px-6 py-6">
+                <p class="text-sm font-semibold text-slate-600 mb-1">Send exact amount to this address</p>
+                <p class="text-xs text-slate-400 mb-5">Payment confirmed automatically after blockchain verification.</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Amount to send</p>
+                        <p id="addr-amount" class="text-xl font-bold text-slate-900"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Wallet address</p>
+                        <div class="flex items-center gap-2">
+                            <code id="addr-wallet" class="flex-1 text-xs font-mono text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 break-all"></code>
+                            <button id="copy-addr-btn"
+                                    class="shrink-0 p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                    title="Copy address">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="memo-row" class="hidden">
+                        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Memo / Tag (required)</p>
+                        <code id="addr-memo" class="text-xs font-mono text-slate-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 block"></code>
+                    </div>
+                </div>
+
+                <div class="mt-5 p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">
+                    <p class="font-semibold">Important</p>
+                    <p>Send only the exact amount shown. Do not close this page.</p>
+                </div>
+
+                <div class="mt-5 flex items-center gap-2 text-sm text-slate-500">
+                    <svg class="animate-spin h-4 w-4 text-indigo-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span id="addr-poll-text">Waiting for payment…</span>
+                </div>
+            </div>
+
+            {# Step: CoinGate — hosted payment page #}
+            <div id="crypto-step-hosted" class="hidden bg-white rounded-2xl border border-slate-200 px-6 py-6">
+                <div class="text-center mb-5">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 mb-3">
+                        <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Payment page opened in new tab</p>
+                    <p class="text-xs text-slate-400 mt-1">Complete your payment there. This page will update automatically.</p>
+                </div>
+
+                <div id="hosted-popup-blocked" class="hidden mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                    <p class="font-semibold mb-1">Popup was blocked</p>
+                    <p>Your browser blocked the payment page. <a id="hosted-manual-link" href="#" target="_blank" class="underline font-medium">Click here to open it manually.</a></p>
+                </div>
+
+                <div class="flex items-center gap-2 text-sm text-slate-500">
+                    <svg class="animate-spin h-4 w-4 text-indigo-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span id="hosted-poll-text">Waiting for payment…</span>
+                </div>
+            </div>
+
+        </div>{# end #panel-crypto #}
+
+        {# ── Cash panel ───────────────────────────────────────────────────────── #}
+        <div id="panel-cash" class="hidden space-y-4">
+
+            {# Step 1: initiate #}
+            <div id="cash-step-init" class="bg-white rounded-2xl border border-slate-200 px-6 py-6">
+                <p class="text-sm font-semibold text-slate-600 mb-1">Pay with cash at the counter</p>
+                <p class="text-xs text-slate-400 mb-5">The cashier will confirm receipt and complete your payment.</p>
+
+                <div id="cash-init-error" class="hidden mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700"></div>
+
+                <button id="cash-pay-btn"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed
+                               text-white text-sm font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                    <svg id="cash-pay-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span id="cash-pay-text">Pay with Cash</span>
+                </button>
+            </div>
+
+            {# Step 2: awaiting cashier confirmation #}
+            <div id="cash-step-waiting" class="hidden bg-white rounded-2xl border border-slate-200 px-6 py-6">
+                <div class="text-center mb-5">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-3">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-700">Hand your cash to the cashier</p>
+                    <p class="text-xs text-slate-400 mt-1">Show this code and pay the exact amount. This page updates automatically.</p>
+                </div>
+
+                <div class="space-y-3 mb-5">
+                    <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Your deposit code</p>
+                            <p id="cash-deposit-code" class="text-xl font-bold font-mono text-slate-900 tracking-widest"></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">Amount</p>
+                            <p id="cash-deposit-amount" class="text-xl font-bold text-slate-900"></p>
+                        </div>
+                    </div>
+                    <p id="cash-deposit-location" class="text-xs text-center text-slate-400"></p>
+                </div>
+
+                <div class="flex items-center gap-2 text-sm text-slate-500">
+                    <svg class="animate-spin h-4 w-4 text-indigo-400 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span id="cash-poll-text">Waiting for cashier confirmation…</span>
+                </div>
+            </div>
+
+        </div>{# end #panel-cash #}
+
+        {# Footer #}
+        <p class="text-center text-xs text-slate-400" id="footer-label">
+            Secured by <span class="font-medium">Stripe</span>
+        </p>
+
+    </div>
+</div>
+
+<script>
+(() => {
+    // ── State ────────────────────────────────────────────────────────────────
+    const STRIPE_KEY = '{{ stripe_publishable_key }}';
+    let activeMethod    = 'card';    // 'card' | 'crypto' | 'cash'
+    let activeProcessor = 'stripe';  // 'stripe' | 'braintree'
+    let cryptoProvider  = 'nowpayments';
+    let cryptoNetwork   = null;
+    let stripeElements  = null;
+    let stripeInstance  = null;
+    let stripeReady     = false;
+    let braintreeDropin = null;
+    let btPaymentId     = null;
+    let btAttemptId     = null;
+    let cashPaymentId   = null;
+    let cashAttemptId   = null;
+    let cashPollTimer   = null;
+
+    // Pre-select method from URL (?method=crypto|cash)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlMethod = urlParams.get('method');
+    if (urlMethod === 'crypto' || urlMethod === 'cash') {
+        activeMethod = urlMethod;
+    }
+
+    // ── Amount helpers ───────────────────────────────────────────────────────
+    const amountInput = document.getElementById('amount-input');
+
+    function getAmountCents() {
+        return Math.round(parseFloat(amountInput.value || '0') * 100);
+    }
+
+    function getAmountDisplay() {
+        return '$' + parseFloat(amountInput.value || '0').toFixed(2);
+    }
+
+    amountInput.addEventListener('change', () => {
+        updateCardBtnText();
+        if (stripeElements) {
+            stripeElements.update({ amount: getAmountCents() });
+        }
+        document.getElementById('braintree-btn-text').textContent = 'Pay ' + getAmountDisplay();
+    });
+
+    // ── Processor tabs (Stripe / Braintree) ───────────────────────────────────
+    function switchProcessor(proc) {
+        activeProcessor = proc;
+        ['stripe', 'braintree'].forEach(p => {
+            const tab   = document.getElementById('proc-' + p);
+            const active = p === proc;
+            tab.classList.toggle('border-indigo-500', active);
+            tab.classList.toggle('bg-indigo-50',       active);
+            tab.classList.toggle('text-indigo-700',    active);
+            tab.classList.toggle('border-slate-200',   !active);
+            tab.classList.toggle('text-slate-600',     !active);
+        });
+
+        const isStripe    = proc === 'stripe';
+        document.getElementById('card-loading').classList.toggle('hidden', !isStripe || stripeReady);
+        document.getElementById('card-form').classList.toggle('hidden', !isStripe || !stripeReady);
+        document.getElementById('braintree-section').classList.toggle('hidden', isStripe);
+        document.getElementById('braintree-hints').classList.toggle('hidden', isStripe);
+        document.querySelector('.rounded-2xl.border.border-amber-200.bg-amber-50').classList.toggle('hidden', !isStripe);
+
+        document.getElementById('footer-label').innerHTML = isStripe
+            ? 'Secured by <span class="font-medium">Stripe</span>'
+            : 'Secured by <span class="font-medium">Braintree</span>';
+
+        if (!isStripe && !braintreeDropin) {
+            initBraintree();
+        }
+        if (isStripe && !stripeReady) {
+            initStripe();
+        }
+    }
+
+    document.getElementById('proc-stripe').addEventListener('click',    () => switchProcessor('stripe'));
+    document.getElementById('proc-braintree').addEventListener('click', () => switchProcessor('braintree'));
+
+    // ── Method tabs ───────────────────────────────────────────────────────────
+    function switchMethod(method) {
+        activeMethod = method;
+        const isCard = method === 'card';
+
+        ['card', 'crypto', 'cash'].forEach(m => {
+            const tab   = document.getElementById('tab-' + m);
+            const panel = document.getElementById('panel-' + m);
+            const active = m === method;
+            tab.classList.toggle('border-indigo-500', active);
+            tab.classList.toggle('bg-indigo-50',       active);
+            tab.classList.toggle('text-indigo-700',    active);
+            tab.classList.toggle('border-slate-200',   !active);
+            tab.classList.toggle('text-slate-600',     !active);
+            panel.classList.toggle('hidden', !active);
+        });
+
+        if (method === 'card') {
+            document.getElementById('footer-label').innerHTML = 'Secured by <span class="font-medium">Stripe</span>';
+        } else if (method === 'crypto') {
+            document.getElementById('footer-label').innerHTML =
+                'Processed by <span class="font-medium" id="provider-label">' + (cryptoProvider === 'coingate' ? 'CoinGate' : 'NOWPayments') + '</span>';
+        } else {
+            document.getElementById('footer-label').innerHTML = 'Paid <span class="font-medium">in person</span>';
+        }
+
+        if (isCard && activeProcessor === 'stripe' && !stripeReady) {
+            initStripe();
+        }
+        if (isCard && activeProcessor === 'braintree' && !braintreeDropin) {
+            initBraintree();
+        }
+    }
+
+    document.getElementById('tab-card').addEventListener('click', () => switchMethod('card'));
+    document.getElementById('tab-crypto').addEventListener('click', () => switchMethod('crypto'));
+    document.getElementById('tab-cash').addEventListener('click', () => switchMethod('cash'));
+
+    // ── Stripe (Card) ─────────────────────────────────────────────────────────
+    function initStripe() {
+        stripeInstance = Stripe(STRIPE_KEY);
+        stripeElements = stripeInstance.elements({
+            mode:     'payment',
+            amount:   getAmountCents(),
+            currency: 'usd',
+            appearance: {
+                theme: 'stripe',
+                variables: {
+                    colorPrimary: '#4f46e5',
+                    borderRadius: '10px',
+                    fontFamily:   'ui-sans-serif, system-ui, sans-serif',
+                },
+            },
+        });
+
+        const paymentEl = stripeElements.create('payment');
+        paymentEl.mount('#payment-element');
+        paymentEl.on('ready', () => {
+            document.getElementById('card-loading').classList.add('hidden');
+            document.getElementById('card-form').classList.remove('hidden');
+            stripeReady = true;
+        });
+    }
+
+    document.getElementById('card-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setCardLoading(true);
+        hideCardError();
+
+        const { error: submitError } = await stripeElements.submit();
+        if (submitError) {
+            showCardError(submitError.message);
+            setCardLoading(false);
+            return;
+        }
+
+        let paymentId, clientSecret;
+        try {
+            const res = await fetch('/api/payments', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ amount: getAmountCents(), currency: 'USD', customerId: 'demo-customer' }),
+            });
+            if (!res.ok) throw new Error('Could not create payment (' + res.status + ')');
+            ({ paymentId, clientToken: clientSecret } = await res.json());
+        } catch (err) {
+            showCardError(err.message);
+            setCardLoading(false);
+            return;
+        }
+
+        const returnUrl = window.location.origin + '/checkout/return?paymentId=' + paymentId;
+        const { error } = await stripeInstance.confirmPayment({
+            elements: stripeElements,
+            clientSecret,
+            confirmParams: { return_url: returnUrl },
+            redirect: 'if_required',
+        });
+
+        if (error) {
+            showCardError(error.message);
+            setCardLoading(false);
+        } else {
+            window.location.href = returnUrl + '&redirect_status=succeeded';
+        }
+    });
+
+    function setCardLoading(on) {
+        const btn = document.getElementById('card-submit-btn');
+        btn.disabled = on;
+        document.getElementById('card-btn-text').textContent = on ? 'Processing…' : getAmountDisplay();
+        document.getElementById('card-spinner').classList.toggle('hidden', !on);
+    }
+
+    function updateCardBtnText() {
+        if (!document.getElementById('card-submit-btn').disabled) {
+            document.getElementById('card-btn-text').textContent = 'Pay ' + getAmountDisplay();
+        }
+    }
+
+    function showCardError(msg) {
+        document.getElementById('card-error-text').textContent = msg;
+        document.getElementById('card-error-box').classList.remove('hidden');
+    }
+
+    function hideCardError() {
+        document.getElementById('card-error-box').classList.add('hidden');
+    }
+
+    // ── Braintree ─────────────────────────────────────────────────────────────
+
+    async function initBraintree() {
+        // Lazily load Braintree Drop-in SDK
+        if (!window.braintree) {
+            await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://js.braintreegateway.com/web/dropin/1.43.0/js/dropin.min.js';
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
+        document.getElementById('braintree-loading').classList.remove('hidden');
+        document.getElementById('braintree-dropin').innerHTML = '';
+
+        try {
+            const res = await fetch('/api/payments', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    amount:     getAmountCents(),
+                    currency:   'USD',
+                    customerId: 'demo-customer',
+                    provider:   'braintree',
+                }),
+            });
+            if (!res.ok) throw new Error('Could not get client token (' + res.status + ')');
+            const { clientToken, paymentId, attemptId } = await res.json();
+            btPaymentId = paymentId;
+            btAttemptId = attemptId;
+
+            braintreeDropin = await window.braintree.dropin.create({
+                authorization: clientToken,
+                container:     '#braintree-dropin',
+            });
+
+            document.getElementById('braintree-loading').classList.add('hidden');
+            document.getElementById('braintree-submit-btn').classList.remove('hidden');
+            document.getElementById('braintree-btn-text').textContent = 'Pay ' + getAmountDisplay();
+
+        } catch (err) {
+            document.getElementById('braintree-loading').classList.add('hidden');
+            showBraintreeError(err.message);
+        }
+    }
+
+    document.getElementById('braintree-submit-btn').addEventListener('click', async () => {
+        if (!braintreeDropin) return;
+        setBraintreeLoading(true);
+        hideBraintreeError();
+
+        let nonce;
+        try {
+            const payload = await braintreeDropin.requestPaymentMethod();
+            nonce = payload.nonce;
+        } catch (err) {
+            showBraintreeError(err.message);
+            setBraintreeLoading(false);
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/payments/' + btPaymentId + '/charge', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ attemptId: btAttemptId, nonce }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.error ?? 'Sale failed (' + res.status + ')');
+            window.location.href = '/checkout/return?paymentId=' + btPaymentId;
+        } catch (err) {
+            showBraintreeError(err.message);
+            setBraintreeLoading(false);
+        }
+    });
+
+    function setBraintreeLoading(on) {
+        document.getElementById('braintree-submit-btn').disabled = on;
+        document.getElementById('braintree-spinner').classList.toggle('hidden', !on);
+        document.getElementById('braintree-btn-text').textContent = on ? 'Processing…' : 'Pay ' + getAmountDisplay();
+    }
+
+    function showBraintreeError(msg) {
+        document.getElementById('braintree-error-text').textContent = msg;
+        document.getElementById('braintree-error-box').classList.remove('hidden');
+        document.getElementById('braintree-error-box').classList.add('flex');
+    }
+
+    function hideBraintreeError() {
+        document.getElementById('braintree-error-box').classList.add('hidden');
+        document.getElementById('braintree-error-box').classList.remove('flex');
+    }
+
+    // ── Crypto: provider tabs ─────────────────────────────────────────────────
+    document.querySelectorAll('.crypto-provider-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            cryptoProvider = tab.dataset.provider;
+            cryptoNetwork  = null;
+
+            document.querySelectorAll('.crypto-provider-tab').forEach(t => {
+                const active = t === tab;
+                t.classList.toggle('border-indigo-500', active);
+                t.classList.toggle('bg-indigo-50',       active);
+                t.classList.toggle('text-indigo-700',    active);
+                t.classList.toggle('border-slate-200',   !active);
+                t.classList.toggle('text-slate-600',     !active);
+            });
+
+            document.getElementById('crypto-networks-nowpayments').classList.toggle('hidden', cryptoProvider !== 'nowpayments');
+            document.getElementById('crypto-networks-coingate').classList.toggle('hidden', cryptoProvider !== 'coingate');
+
+            document.querySelectorAll('.crypto-network-btn').forEach(b => b.classList.remove('border-indigo-500', 'bg-indigo-50'));
+            document.getElementById('crypto-pay-btn').disabled = true;
+            document.getElementById('crypto-pay-text').textContent = 'Select a currency';
+            hideCryptoError();
+
+            document.getElementById('footer-label').innerHTML =
+                'Processed by <span class="font-medium">' + (cryptoProvider === 'coingate' ? 'CoinGate' : 'NOWPayments') + '</span>';
+        });
+    });
+
+    // ── Crypto: network selection ─────────────────────────────────────────────
+    document.querySelectorAll('.crypto-network-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const parentGrid = btn.closest('[id^="crypto-networks-"]');
+            if (parentGrid && parentGrid.classList.contains('hidden')) return;
+
+            document.querySelectorAll('.crypto-network-btn').forEach(b => b.classList.remove('border-indigo-500', 'bg-indigo-50'));
+            btn.classList.add('border-indigo-500', 'bg-indigo-50');
+            cryptoNetwork = btn.dataset.network;
+            document.getElementById('crypto-pay-btn').disabled = false;
+            document.getElementById('crypto-pay-text').textContent =
+                cryptoProvider === 'coingate' ? 'Open payment page' : 'Generate payment address';
+            hideCryptoError();
+        });
+    });
+
+    // ── Crypto: pay button ────────────────────────────────────────────────────
+    document.getElementById('crypto-pay-btn').addEventListener('click', async () => {
+        if (!cryptoNetwork) return;
+
+        setCryptoLoading(true);
+        hideCryptoError();
+
+        try {
+            const res = await fetch('/api/payments/crypto', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    amount:     getAmountCents(),
+                    currency:   'USD',
+                    customerId: 'demo-customer',
+                    network:    cryptoNetwork,
+                    provider:   cryptoProvider,
+                }),
+            });
+
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || 'Could not create payment (' + res.status + ')');
+            }
+
+            const data = await res.json();
+
+            if (cryptoProvider === 'coingate') {
+                showHostedStep(data);
+            } else {
+                showAddressStep(data);
+            }
+
+            startCryptoPolling(data.paymentId);
+
+        } catch (err) {
+            showCryptoError(err.message);
+        } finally {
+            setCryptoLoading(false);
+        }
+    });
+
+    // ── Crypto: NOWPayments address display ───────────────────────────────────
+    function showAddressStep(data) {
+        document.getElementById('crypto-step-select').classList.add('hidden');
+        document.getElementById('crypto-step-address').classList.remove('hidden');
+        document.getElementById('addr-amount').textContent = data.payAmount + ' ' + data.payCurrency.toUpperCase();
+        document.getElementById('addr-wallet').textContent = data.walletAddress;
+        if (data.memo) {
+            document.getElementById('addr-memo').textContent = data.memo;
+            document.getElementById('memo-row').classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('copy-addr-btn').addEventListener('click', () => {
+        const addr = document.getElementById('addr-wallet').textContent;
+        navigator.clipboard.writeText(addr).catch(() => {});
+    });
+
+    // ── Crypto: CoinGate hosted page display ──────────────────────────────────
+    function showHostedStep(data) {
+        document.getElementById('crypto-step-select').classList.add('hidden');
+        document.getElementById('crypto-step-hosted').classList.remove('hidden');
+
+        if (data.paymentUrl) {
+            const popup = window.open(data.paymentUrl, '_blank');
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                // Popup was blocked
+                const blockedEl = document.getElementById('hosted-popup-blocked');
+                blockedEl.classList.remove('hidden');
+                document.getElementById('hosted-manual-link').href = data.paymentUrl;
+            }
+        }
+    }
+
+    // ── Crypto: polling ───────────────────────────────────────────────────────
+    function startCryptoPolling(pmtId) {
+        const TERMINAL = ['succeeded', 'failed', 'expired', 'canceled'];
+        const INTERVAL = 5000;
+        const MAX      = 120;
+        let count      = 0;
+
+        const pollTextId = cryptoProvider === 'coingate' ? 'hosted-poll-text' : 'addr-poll-text';
+
+        const msgs = {
+            pending:    'Waiting for payment…',
+            processing: 'Detected — awaiting confirmations…',
+            succeeded:  'Confirmed! Redirecting…',
+            failed:     'Payment failed.',
+            expired:    'Invoice expired.',
+            canceled:   'Payment canceled.',
+        };
+
+        const timer = setInterval(async () => {
+            if (++count > MAX) {
+                clearInterval(timer);
+                document.getElementById(pollTextId).textContent = 'Timed out — check status manually.';
+                return;
+            }
+            try {
+                const res = await fetch('/api/payments/' + pmtId);
+                if (!res.ok) return;
+                const payment = await res.json();
+                document.getElementById(pollTextId).textContent = msgs[payment.status] ?? 'Checking…';
+                if (TERMINAL.includes(payment.status)) {
+                    clearInterval(timer);
+                    window.location.href = '/checkout/return?paymentId=' + pmtId;
+                }
+            } catch (_) {}
+        }, INTERVAL);
+    }
+
+    // ── Crypto helpers ────────────────────────────────────────────────────────
+    function setCryptoLoading(on) {
+        document.getElementById('crypto-pay-btn').disabled = on;
+        document.getElementById('crypto-pay-spinner').classList.toggle('hidden', !on);
+        document.getElementById('crypto-pay-text').textContent = on ? 'Creating invoice…'
+            : (cryptoProvider === 'coingate' ? 'Open payment page' : 'Generate payment address');
+    }
+
+    function showCryptoError(msg) {
+        const el = document.getElementById('crypto-select-error');
+        el.textContent = msg;
+        el.classList.remove('hidden');
+    }
+
+    function hideCryptoError() {
+        document.getElementById('crypto-select-error').classList.add('hidden');
+    }
+
+    // ── Cash ──────────────────────────────────────────────────────────────────
+
+    document.getElementById('cash-pay-btn').addEventListener('click', initiateCashPayment);
+
+    async function initiateCashPayment() {
+        const btn     = document.getElementById('cash-pay-btn');
+        const spinner = document.getElementById('cash-pay-spinner');
+        const text    = document.getElementById('cash-pay-text');
+        const errBox  = document.getElementById('cash-init-error');
+
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        text.textContent = 'Processing…';
+        errBox.classList.add('hidden');
+
+        try {
+            const res = await fetch('/api/payments/cash', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    amount:     getAmountCents(),
+                    currency:   'USD',
+                    customerId: 'guest',
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? 'Request failed');
+
+            cashPaymentId = data.paymentId;
+            cashAttemptId = data.attemptId;
+
+            document.getElementById('cash-deposit-code').textContent   = data.depositCode;
+            document.getElementById('cash-deposit-amount').textContent = getAmountDisplay();
+            document.getElementById('cash-deposit-location').textContent = data.depositLocation;
+
+            document.getElementById('cash-step-init').classList.add('hidden');
+            document.getElementById('cash-step-waiting').classList.remove('hidden');
+
+            startCashPolling(cashPaymentId);
+        } catch (err) {
+            errBox.textContent = err.message;
+            errBox.classList.remove('hidden');
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+            text.textContent = 'Pay with Cash';
+        }
+    }
+
+    function startCashPolling(paymentId) {
+        let attempts = 0;
+        const MAX = 120; // 2 min at 1s interval
+
+        cashPollTimer = setInterval(async () => {
+            attempts++;
+            if (attempts > MAX) {
+                clearInterval(cashPollTimer);
+                document.getElementById('cash-poll-text').textContent = 'Timed out. Please check with the cashier.';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/payments/' + paymentId);
+                if (!res.ok) return;
+                const p = await res.json();
+
+                if (p.status === 'succeeded') {
+                    clearInterval(cashPollTimer);
+                    window.location.href = '/checkout/return?paymentId=' + paymentId;
+                } else if (p.status === 'failed' || p.status === 'canceled') {
+                    clearInterval(cashPollTimer);
+                    document.getElementById('cash-poll-text').textContent = 'Payment ' + p.status + '. Please try again.';
+                }
+            } catch { /* ignore */ }
+        }, 1000);
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    switchMethod(activeMethod);
+    updateCardBtnText();
+
+})();
+</script>
+{% endblock %}

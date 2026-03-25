@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                  https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Infrastructure\Persistence\Entity\SavedPaymentMethodEntity" table="saved_payment_methods">
+        <id name="id" type="string" column="id" length="36"/>
+
+        <field name="customerId"   type="string"  column="customer_id"   length="255"/>
+        <field name="providerName" type="string"  column="provider_name" length="100"/>
+        <field name="providerToken" type="string" column="provider_token" length="500"/>
+        <field name="status"       type="string"  column="status"        length="30"/>
+        <field name="createdAt"    type="datetime_immutable" column="created_at"/>
+        <field name="methodType"   type="string"  column="method_type"   length="20"/>
+        <field name="data"         type="json"    column="data"/>
+        <field name="version"      type="integer" column="version"/>
+
+        <indexes>
+            <index name="idx_spm_customer_id"    columns="customer_id"/>
+            <index name="idx_spm_provider_token" columns="provider_name, provider_token"/>
+        </indexes>
+    </entity>
+
+</doctrine-mapping>

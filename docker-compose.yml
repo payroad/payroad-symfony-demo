@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/app
+      - ../payroad-core:/payroad-core
+      - ../stripe-provider:/stripe-provider
+      - ../nowpayments-provider:/nowpayments-provider
+      - ../coingate-provider:/coingate-provider
+      - ../braintree-provider:/braintree-provider
+      - ../symfony-bridge:/symfony-bridge
+      - ../internal-cash-provider:/internal-cash-provider
+    environment:
+      APP_ENV: dev
+      SERVER_NAME: ":80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payroad_demo
+      POSTGRES_USER: payroad
+      POSTGRES_PASSWORD: payroad
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payroad"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

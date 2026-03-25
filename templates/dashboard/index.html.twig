@@ -1,0 +1,866 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Payroad — Dashboard{% endblock %}
+
+{% block body %}
+<div class="min-h-screen bg-slate-50">
+
+    {# ── Top bar ─────────────────────────────────────────────────────────── #}
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="text-lg font-bold text-slate-900">Payroad</span>
+            <span class="text-slate-300">·</span>
+            <span class="text-sm text-slate-500">Payments Dashboard</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/checkout"
+               class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Payment
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
+        {# ── Period selector ────────────────────────────────────────────── #}
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <h1 class="text-xl font-bold text-slate-900">Overview</h1>
+            <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1">
+                <button onclick="setPeriod('today')"  data-period="today"
+                        class="period-btn text-xs font-medium px-3 py-1.5 rounded-md transition-colors text-slate-500 hover:text-slate-800">
+                    Today
+                </button>
+                <button onclick="setPeriod('7d')"  data-period="7d"
+                        class="period-btn text-xs font-medium px-3 py-1.5 rounded-md transition-colors text-slate-500 hover:text-slate-800">
+                    7 days
+                </button>
+                <button onclick="setPeriod('30d')" data-period="30d"
+                        class="period-btn text-xs font-medium px-3 py-1.5 rounded-md transition-colors bg-indigo-600 text-white">
+                    30 days
+                </button>
+                <button onclick="setPeriod('all')" data-period="all"
+                        class="period-btn text-xs font-medium px-3 py-1.5 rounded-md transition-colors text-slate-500 hover:text-slate-800">
+                    All time
+                </button>
+                <span class="w-px h-4 bg-slate-200 mx-1"></span>
+                <input id="date-from" type="date"
+                       onchange="onDateChange()"
+                       class="text-xs border-0 rounded-md px-2 py-1.5 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+                <span class="text-xs text-slate-400">—</span>
+                <input id="date-to" type="date"
+                       onchange="onDateChange()"
+                       class="text-xs border-0 rounded-md px-2 py-1.5 text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-300">
+            </div>
+        </div>
+
+        {# ── Revenue metric cards ────────────────────────────────────────── #}
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white rounded-xl border border-slate-200 p-5">
+                <p class="text-xs text-slate-400 mb-1">Total Revenue</p>
+                <p class="text-2xl font-bold text-slate-900" data-metric="totalRevenue">
+                    ${{ (metrics.totalRevenue / 100)|number_format(2) }}
+                </p>
+                <p class="text-xs text-slate-400 mt-1">
+                    <span data-metric="succeededCount">{{ metrics.succeededCount }}</span> payments
+                </p>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-5">
+                <p class="text-xs text-slate-400 mb-1">Net Revenue</p>
+                <p class="text-2xl font-bold text-green-700" data-metric="netRevenue">
+                    ${{ (metrics.netRevenue / 100)|number_format(2) }}
+                </p>
+                <p class="text-xs text-slate-400 mt-1">after refunds</p>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-5">
+                <p class="text-xs text-slate-400 mb-1">Avg Order Value</p>
+                <p class="text-2xl font-bold text-slate-900" data-metric="avgOrderValue">
+                    ${{ (metrics.avgOrderValue / 100)|number_format(2) }}
+                </p>
+                <p class="text-xs text-slate-400 mt-1">per succeeded payment</p>
+            </div>
+            <div class="bg-white rounded-xl border border-slate-200 p-5">
+                <p class="text-xs text-slate-400 mb-1">Refund Rate</p>
+                <p class="text-2xl font-bold {{ metrics.refundRate > 0.05 ? 'text-red-600' : 'text-slate-900' }}"
+                   data-metric="refundRate">
+                    {{ (metrics.refundRate * 100)|number_format(1) }}%
+                </p>
+                <p class="text-xs text-slate-400 mt-1">
+                    <span data-metric="refundedCount">{{ metrics.refundedCount }}</span> refunded
+                </p>
+            </div>
+        </div>
+
+        {# ── Status count cards ──────────────────────────────────────────── #}
+        {% set statuses = [
+            { key: 'succeeded',          label: 'Succeeded',      color: 'green'  },
+            { key: 'pending',            label: 'Pending',        color: 'slate'  },
+            { key: 'processing',         label: 'Processing',     color: 'blue'   },
+            { key: 'failed',             label: 'Failed',         color: 'red'    },
+            { key: 'partially_refunded', label: 'Part. Refunded', color: 'amber'  },
+            { key: 'refunded',           label: 'Refunded',       color: 'amber'  },
+        ] %}
+        {% set total = counts|reduce((carry, v) => carry + v, 0) %}
+        {% set colorMap = {
+            green: 'text-green-700 bg-green-50 border-green-100',
+            red:   'text-red-700 bg-red-50 border-red-100',
+            amber: 'text-amber-700 bg-amber-50 border-amber-100',
+            blue:  'text-blue-700 bg-blue-50 border-blue-100',
+            slate: 'text-slate-700 bg-white border-slate-200',
+        } %}
+
+        <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+                <p class="text-xs text-slate-400 mb-1">Total</p>
+                <p class="text-2xl font-bold text-slate-900">{{ total }}</p>
+            </div>
+            {% for s in statuses %}
+                <button onclick="filterBy('{{ s.key }}')"
+                        data-status="{{ s.key }}"
+                        class="stat-card text-left rounded-xl border p-4 transition-all {{ colorMap[s.color] }} hover:shadow-sm">
+                    <p class="text-xs opacity-70 mb-1">{{ s.label }}</p>
+                    <p class="text-2xl font-bold">{{ counts[s.key] ?? 0 }}</p>
+                </button>
+            {% endfor %}
+        </div>
+
+
+        {# ── Payments table ───────────────────────────────────────────────── #}
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+
+            {# Toolbar #}
+            <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center gap-3">
+
+                {# Search #}
+                <div class="relative">
+                    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                    </svg>
+                    <input id="search-input" type="text" placeholder="Search ID or customer…"
+                           oninput="onSearchInput()"
+                           class="pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg w-52 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                </div>
+
+                {# Provider filter #}
+                <select id="provider-filter"
+                        onchange="setProvider(this.value)"
+                        class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    <option value="">All providers</option>
+                    <option value="stripe">Stripe</option>
+                    <option value="nowpayments">NOWPayments</option>
+                    <option value="coingate">CoinGate</option>
+                </select>
+
+                {# Active status filter chip #}
+                <span id="active-filter"
+                      class="hidden text-xs bg-indigo-100 text-indigo-700 font-medium px-2.5 py-1 rounded-full">
+                </span>
+                <button id="clear-filter"
+                        onclick="filterBy(null)"
+                        class="hidden text-xs text-slate-400 hover:text-slate-600 underline">
+                    clear
+                </button>
+
+                {# Per-page selector + refresh + export on the right #}
+                <div class="ml-auto flex items-center gap-4">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                        <span>Show</span>
+                        <select id="per-page-select"
+                                onchange="setPerPage(+this.value)"
+                                class="border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span>per page</span>
+                    </div>
+                    <span id="refresh-ts" class="text-xs text-slate-400"></span>
+                    <a id="export-link" href="/api/payments/export"
+                       class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        CSV
+                    </a>
+                    <button onclick="refreshAll()"
+                            class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            {# Pagination top #}
+            <div id="pagination-top" class="hidden px-5 py-3 border-b border-slate-100 items-center justify-between">
+                <span id="pagination-info-top" class="text-xs text-slate-400"></span>
+                <div class="flex items-center gap-1">
+                    <button id="prev-page-top" onclick="changePage(-1)"
+                            class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600
+                                   hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        ← Prev
+                    </button>
+                    <span id="page-display-top" class="text-xs text-slate-600 px-3 py-1.5"></span>
+                    <button id="next-page-top" onclick="changePage(1)"
+                            class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600
+                                   hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        Next →
+                    </button>
+                </div>
+            </div>
+
+            {# Table #}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-xs text-slate-400 uppercase tracking-wide border-b border-slate-100">
+                            <th class="text-left px-5 py-3 font-medium">Amount</th>
+                            <th class="text-left px-5 py-3 font-medium">Status</th>
+                            <th class="text-left px-5 py-3 font-medium">Provider</th>
+                            <th class="text-left px-5 py-3 font-medium">Method</th>
+                            <th class="text-left px-5 py-3 font-medium">Customer</th>
+                            <th class="text-left px-5 py-3 font-medium">Created</th>
+                            <th class="text-left px-5 py-3 font-medium">ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payments-body">
+                        <tr>
+                            <td colspan="7" class="px-5 py-10 text-center text-slate-400 text-sm">
+                                Loading…
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {# Empty state #}
+            <div id="empty-state" class="hidden py-16 text-center">
+                <svg class="w-10 h-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <p class="text-slate-400 text-sm">No payments found</p>
+                <a href="/checkout" class="mt-3 inline-block text-sm text-indigo-600 hover:underline">
+                    Create first payment →
+                </a>
+            </div>
+
+            {# Pagination #}
+            <div id="pagination" class="hidden px-5 py-4 border-t border-slate-100 items-center justify-between">
+                <span id="pagination-info" class="text-xs text-slate-400"></span>
+                <div class="flex items-center gap-1">
+                    <button id="prev-page" onclick="changePage(-1)"
+                            class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600
+                                   hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        ← Prev
+                    </button>
+                    <span id="page-display" class="text-xs text-slate-600 px-3 py-1.5"></span>
+                    <button id="next-page" onclick="changePage(1)"
+                            class="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600
+                                   hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        Next →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+{# ── Payment detail modal ──────────────────────────────────────────────────── #}
+<div id="payment-modal"
+     class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+     onclick="onModalBackdropClick(event)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+
+        {# Modal header #}
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+            <div>
+                <h2 class="font-semibold text-slate-800">Payment Detail</h2>
+                <p id="modal-payment-id" class="text-xs text-slate-400 font-mono mt-0.5"></p>
+            </div>
+            <button onclick="closeModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                ✕
+            </button>
+        </div>
+
+        {# Modal body #}
+        <div id="modal-body" class="overflow-y-auto flex-1 p-6 space-y-6">
+            <p class="text-slate-400 text-sm">Loading…</p>
+        </div>
+
+        {# Modal actions #}
+        <div id="modal-actions" class="px-6 py-4 border-t border-slate-100 flex items-center gap-3 flex-wrap shrink-0">
+            <div id="refund-section" class="hidden items-center gap-2">
+                <input id="refund-amount" type="number" min="1" placeholder="Amount in cents"
+                       class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-40 focus:outline-none focus:ring-2 focus:ring-amber-300">
+                <button onclick="submitRefund()"
+                        class="text-sm bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+                    Issue Refund
+                </button>
+            </div>
+            <button id="btn-confirm-cash"
+                    class="hidden text-sm bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+                ✓ Confirm Cash Received
+            </button>
+            <button id="btn-cancel"
+                    class="hidden text-sm bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+                Cancel Payment
+            </button>
+            <button onclick="closeModal()"
+                    class="ml-auto text-sm text-slate-500 hover:text-slate-700 font-medium px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const STATUS_COLORS = {
+    succeeded:             'bg-green-100 text-green-700',
+    pending:               'bg-slate-100 text-slate-600',
+    processing:            'bg-blue-100 text-blue-700',
+    awaiting_confirmation: 'bg-yellow-100 text-yellow-700',
+    failed:                'bg-red-100 text-red-700',
+    canceled:              'bg-slate-100 text-slate-500',
+    refunded:              'bg-amber-100 text-amber-700',
+    partially_refunded:    'bg-amber-100 text-amber-600',
+    expired:               'bg-slate-100 text-slate-400',
+};
+
+const METHOD_ICONS = {
+    card:   '💳',
+    crypto: '₿',
+    p2p:    '↔',
+    cash:   '💵',
+};
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let pageLimit      = 10;
+let currentPage    = 1;
+let totalPages     = 1;
+let activeFilter   = null;
+let activeProvider = '';
+let activeSearch   = '';
+let dateFrom       = '';
+let dateTo         = '';
+let searchTimer    = null;
+let currentPayment = null; // open in modal
+
+// ── URL builders ──────────────────────────────────────────────────────────────
+
+function buildParams(extra = {}) {
+    const p = new URLSearchParams();
+    if (activeFilter)   p.set('status',   activeFilter);
+    if (activeProvider) p.set('provider', activeProvider);
+    if (activeSearch)   p.set('search',   activeSearch);
+    if (dateFrom)       p.set('from',     dateFrom);
+    if (dateTo)         p.set('to',       dateTo);
+    Object.entries(extra).forEach(([k, v]) => p.set(k, v));
+    return p;
+}
+
+function apiUrl(base, extra = {}) {
+    const qs = buildParams(extra).toString();
+    return base + (qs ? '?' + qs : '');
+}
+
+// ── Data loaders ──────────────────────────────────────────────────────────────
+
+async function loadPayments() {
+    let result;
+    try {
+        const res = await fetch(apiUrl('/api/payments', { page: currentPage, limit: pageLimit }));
+        if (!res.ok) throw new Error();
+        result = await res.json();
+    } catch {
+        document.getElementById('payments-body').innerHTML =
+            '<tr><td colspan="7" class="px-5 py-10 text-center text-red-500 text-sm">Failed to load payments.</td></tr>';
+        return;
+    }
+
+    document.getElementById('refresh-ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    renderTable(result.data);
+    renderPagination(result.page, result.pages, result.total);
+    updateExportLink();
+}
+
+async function loadMetrics() {
+    try {
+        const res = await fetch(apiUrl('/api/payments/metrics'));
+        if (!res.ok) return;
+        const m = await res.json();
+        updateMetricCards(m);
+    } catch { /* non-critical */ }
+}
+
+function refreshAll() {
+    loadPayments();
+    loadMetrics();
+}
+
+// ── Renderers ─────────────────────────────────────────────────────────────────
+
+function renderTable(rows) {
+    const tbody      = document.getElementById('payments-body');
+    const emptyState = document.getElementById('empty-state');
+
+    if (rows.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+    }
+
+    emptyState.classList.add('hidden');
+
+    tbody.innerHTML = rows.map(p => {
+        const amount   = (p.amount / 100).toFixed(2);
+        const badge    = STATUS_COLORS[p.status] ?? 'bg-slate-100 text-slate-600';
+        const date     = new Date(p.createdAt.replace(' ', 'T') + 'Z').toLocaleString();
+        const shortId  = p.id.slice(0, 8) + '…';
+        const provider = p.providerName ?? '—';
+        const method   = p.methodType ? (METHOD_ICONS[p.methodType] ?? '') + ' ' + p.methodType : '—';
+
+        return `<tr onclick="openPayment('${p.id}')"
+                    class="border-t border-slate-50 hover:bg-slate-50 transition-colors cursor-pointer group">
+            <td class="px-5 py-3.5 font-semibold text-slate-800 whitespace-nowrap">
+                ${p.currency} ${amount}
+                ${p.refundedAmount > 0
+                    ? `<span class="ml-1 text-xs text-amber-600 font-normal">-${(p.refundedAmount/100).toFixed(2)}</span>`
+                    : ''}
+            </td>
+            <td class="px-5 py-3.5">
+                <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${badge}">
+                    ${p.status}
+                </span>
+            </td>
+            <td class="px-5 py-3.5 text-slate-500 text-xs">${provider}</td>
+            <td class="px-5 py-3.5 text-slate-500 text-xs">${method}</td>
+            <td class="px-5 py-3.5 text-slate-600 max-w-[140px] truncate">${p.customerId}</td>
+            <td class="px-5 py-3.5 text-slate-400 whitespace-nowrap text-xs">${date}</td>
+            <td class="px-5 py-3.5">
+                <span class="font-mono text-xs text-slate-400 group-hover:text-indigo-600 transition-colors"
+                      title="${p.id}">${shortId}</span>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function renderPagination(page, pages, total) {
+    const bottom = document.getElementById('pagination');
+    const top    = document.getElementById('pagination-top');
+
+    if (pages <= 1) {
+        [bottom, top].forEach(el => { el.classList.add('hidden'); el.classList.remove('flex'); });
+        return;
+    }
+
+    [bottom, top].forEach(el => { el.classList.remove('hidden'); el.classList.add('flex'); });
+    totalPages = pages;
+
+    const from  = ((page - 1) * pageLimit) + 1;
+    const to    = Math.min(page * pageLimit, total);
+    const info  = `${from}–${to} of ${total}`;
+    const label = `Page ${page} of ${pages}`;
+
+    document.getElementById('pagination-info').textContent     = info;
+    document.getElementById('pagination-info-top').textContent = info;
+    document.getElementById('page-display').textContent        = label;
+    document.getElementById('page-display-top').textContent    = label;
+
+    document.getElementById('prev-page').disabled     = page <= 1;
+    document.getElementById('prev-page-top').disabled = page <= 1;
+    document.getElementById('next-page').disabled     = page >= pages;
+    document.getElementById('next-page-top').disabled = page >= pages;
+}
+
+function updateMetricCards(m) {
+    const fmt = (cents) => '$' + (cents / 100).toFixed(2);
+    const pct  = (rate)  => (rate * 100).toFixed(1) + '%';
+
+    const set = (attr, val) => {
+        document.querySelectorAll(`[data-metric="${attr}"]`).forEach(el => {
+            el.textContent = val;
+        });
+    };
+
+    set('totalRevenue',   fmt(m.totalRevenue));
+    set('netRevenue',     fmt(m.netRevenue));
+    set('avgOrderValue',  fmt(m.avgOrderValue));
+    set('refundRate',     pct(m.refundRate));
+    set('succeededCount', m.succeededCount);
+    set('refundedCount',  m.refundedCount);
+}
+
+
+// ── Filters ───────────────────────────────────────────────────────────────────
+
+function filterBy(status) {
+    activeFilter  = status;
+    currentPage   = 1;
+
+    document.querySelectorAll('.stat-card').forEach(el => {
+        el.classList.toggle('ring-2',         el.dataset.status === status);
+        el.classList.toggle('ring-indigo-400', el.dataset.status === status);
+    });
+
+    const filterEl = document.getElementById('active-filter');
+    const clearEl  = document.getElementById('clear-filter');
+    if (status) {
+        filterEl.textContent = status;
+        filterEl.classList.remove('hidden');
+        clearEl.classList.remove('hidden');
+    } else {
+        filterEl.classList.add('hidden');
+        clearEl.classList.add('hidden');
+    }
+
+    loadPayments();
+}
+
+function setProvider(value) {
+    activeProvider = value;
+    currentPage    = 1;
+    loadPayments();
+}
+
+function setPerPage(value) {
+    pageLimit   = value;
+    currentPage = 1;
+    loadPayments();
+}
+
+function onSearchInput() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        activeSearch = document.getElementById('search-input').value.trim();
+        currentPage  = 1;
+        loadPayments();
+    }, 300);
+}
+
+function onDateChange() {
+    dateFrom    = document.getElementById('date-from').value;
+    dateTo      = document.getElementById('date-to').value;
+    currentPage = 1;
+    document.querySelectorAll('.period-btn').forEach(b => {
+        b.classList.remove('bg-indigo-600', 'text-white');
+        b.classList.add('text-slate-500');
+    });
+    refreshAll();
+}
+
+function setPeriod(period) {
+    const today = new Date();
+    const fmt   = d => d.toISOString().slice(0, 10);
+
+    if (period === 'today') {
+        dateFrom = dateTo = fmt(today);
+    } else if (period === '7d') {
+        dateFrom = fmt(new Date(today.getTime() - 6 * 86400000));
+        dateTo   = fmt(today);
+    } else if (period === '30d') {
+        dateFrom = fmt(new Date(today.getTime() - 29 * 86400000));
+        dateTo   = fmt(today);
+    } else {
+        dateFrom = dateTo = '';
+    }
+
+    document.getElementById('date-from').value = dateFrom;
+    document.getElementById('date-to').value   = dateTo;
+
+    document.querySelectorAll('.period-btn').forEach(b => {
+        const active = b.dataset.period === period;
+        b.classList.toggle('bg-indigo-600', active);
+        b.classList.toggle('text-white',    active);
+        b.classList.toggle('text-slate-500', !active);
+    });
+
+    currentPage = 1;
+    refreshAll();
+}
+
+function changePage(delta) {
+    const next = currentPage + delta;
+    if (next < 1 || next > totalPages) return;
+    currentPage = next;
+    loadPayments();
+}
+
+function updateExportLink() {
+    const params = buildParams();
+    const qs     = params.toString();
+    document.getElementById('export-link').href = '/api/payments/export' + (qs ? '?' + qs : '');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+async function openPayment(id) {
+    currentPayment = null;
+    document.getElementById('payment-modal').classList.remove('hidden');
+    document.getElementById('modal-payment-id').textContent = id;
+    document.getElementById('modal-body').innerHTML         = '<p class="text-slate-400 text-sm">Loading…</p>';
+    const rs = document.getElementById('refund-section');
+    rs.classList.add('hidden');
+    rs.classList.remove('flex');
+    document.getElementById('btn-cancel').classList.add('hidden');
+    document.getElementById('btn-confirm-cash').classList.add('hidden');
+
+    let p;
+    try {
+        const res = await fetch('/api/payments/' + id);
+        if (!res.ok) throw new Error('Not found');
+        p = await res.json();
+    } catch (err) {
+        document.getElementById('modal-body').innerHTML =
+            `<p class="text-red-500 text-sm">Failed to load payment: ${err.message}</p>`;
+        return;
+    }
+
+    currentPayment = p;
+    document.getElementById('modal-body').innerHTML = renderModalBody(p);
+
+    // Refund section
+    if (p.canRefund) {
+        const max = p.amount - p.refundedAmount;
+        const refundSection = document.getElementById('refund-section');
+        refundSection.classList.remove('hidden');
+        refundSection.classList.add('flex');
+        document.getElementById('refund-amount').value = max;
+        document.getElementById('refund-amount').max   = max;
+    }
+
+    // Cancel button
+    if (p.canCancel) {
+        const btnCancel = document.getElementById('btn-cancel');
+        btnCancel.classList.remove('hidden');
+        btnCancel.onclick = () => handleCancel(p.id);
+    }
+
+    // Confirm cash button — shown when a cash attempt is awaiting confirmation
+    const cashAttempt = (p.attempts ?? []).find(
+        a => a.methodType === 'cash' && a.status === 'awaiting_confirmation'
+    );
+    if (cashAttempt) {
+        const btnCash = document.getElementById('btn-confirm-cash');
+        btnCash.classList.remove('hidden');
+        btnCash.onclick = () => handleConfirmCash(p.id, cashAttempt.id);
+    }
+}
+
+function renderModalBody(p) {
+    const fmtAmt  = (cents, cur) => cur + ' ' + (cents / 100).toFixed(2);
+    const fmtDate = (s) => s ? new Date(s.replace(' ', 'T') + 'Z').toLocaleString() : '—';
+    const badge   = (status) => {
+        const cls = STATUS_COLORS[status] ?? 'bg-slate-100 text-slate-600';
+        return `<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${cls}">${status}</span>`;
+    };
+
+    let html = `
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-xs text-slate-400">Amount</p>
+                <p class="font-bold text-slate-900 text-lg">${fmtAmt(p.amount, p.currency)}</p>
+                ${p.refundedAmount > 0
+                    ? `<p class="text-xs text-amber-600">Refunded: ${fmtAmt(p.refundedAmount, p.currency)}</p>`
+                    : ''}
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Status</p>
+                <div class="mt-1">${badge(p.status)}</div>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Customer</p>
+                <p class="font-medium text-slate-700">${p.customerId}</p>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Provider</p>
+                <p class="font-medium text-slate-700">${p.providerName ?? '—'} ${p.methodType ? '(' + p.methodType + ')' : ''}</p>
+            </div>
+            <div>
+                <p class="text-xs text-slate-400">Created</p>
+                <p class="text-slate-600">${fmtDate(p.createdAt)}</p>
+            </div>
+            ${p.expiresAt ? `
+            <div>
+                <p class="text-xs text-slate-400">Expires</p>
+                <p class="text-slate-600">${fmtDate(p.expiresAt)}</p>
+            </div>` : ''}
+        </div>`;
+
+    // Attempts table
+    if (p.attempts.length > 0) {
+        html += `
+        <div>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                Attempts (${p.attempts.length})
+            </p>
+            <div class="overflow-x-auto rounded-lg border border-slate-100">
+                <table class="w-full text-xs">
+                    <thead class="bg-slate-50 text-slate-400 uppercase tracking-wide">
+                        <tr>
+                            <th class="text-left px-4 py-2 font-medium">Provider</th>
+                            <th class="text-left px-4 py-2 font-medium">Method</th>
+                            <th class="text-left px-4 py-2 font-medium">Status</th>
+                            <th class="text-left px-4 py-2 font-medium">Ref</th>
+                            <th class="text-left px-4 py-2 font-medium">Amount</th>
+                            <th class="text-left px-4 py-2 font-medium">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        ${p.attempts.map(a => `
+                        <tr>
+                            <td class="px-4 py-2.5 text-slate-600">${a.providerName}</td>
+                            <td class="px-4 py-2.5 text-slate-500">${a.methodType}</td>
+                            <td class="px-4 py-2.5">${badge(a.status)}</td>
+                            <td class="px-4 py-2.5 font-mono text-slate-400 max-w-[120px] truncate"
+                                title="${a.providerReference ?? ''}">${a.providerReference ? a.providerReference.slice(0, 12) + '…' : '—'}</td>
+                            <td class="px-4 py-2.5 text-slate-600">${fmtAmt(a.amount, a.currency)}</td>
+                            <td class="px-4 py-2.5 text-slate-400">${fmtDate(a.createdAt)}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    }
+
+    // Refunds table
+    if (p.refunds.length > 0) {
+        html += `
+        <div>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                Refunds (${p.refunds.length})
+            </p>
+            <div class="overflow-x-auto rounded-lg border border-slate-100">
+                <table class="w-full text-xs">
+                    <thead class="bg-slate-50 text-slate-400 uppercase tracking-wide">
+                        <tr>
+                            <th class="text-left px-4 py-2 font-medium">Provider</th>
+                            <th class="text-left px-4 py-2 font-medium">Status</th>
+                            <th class="text-left px-4 py-2 font-medium">Amount</th>
+                            <th class="text-left px-4 py-2 font-medium">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        ${p.refunds.map(r => `
+                        <tr>
+                            <td class="px-4 py-2.5 text-slate-600">${r.providerName}</td>
+                            <td class="px-4 py-2.5">${badge(r.status)}</td>
+                            <td class="px-4 py-2.5 text-amber-700 font-medium">-${fmtAmt(r.amount, r.currency)}</td>
+                            <td class="px-4 py-2.5 text-slate-400">${fmtDate(r.createdAt)}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    }
+
+    return html;
+}
+
+function closeModal() {
+    document.getElementById('payment-modal').classList.add('hidden');
+    currentPayment = null;
+}
+
+function onModalBackdropClick(e) {
+    if (e.target === document.getElementById('payment-modal')) closeModal();
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+async function submitRefund() {
+    if (!currentPayment) return;
+    const amount = parseInt(document.getElementById('refund-amount').value);
+    if (!amount || amount <= 0) {
+        alert('Enter a valid refund amount (in cents).');
+        return;
+    }
+
+    const isCash    = currentPayment.methodType === 'cash';
+    const endpoint  = isCash ? '/api/payments/cash/refunds' : '/api/refunds';
+
+    try {
+        const res = await fetch(endpoint, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ paymentId: currentPayment.id, amount }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? 'Unknown error');
+    } catch (err) {
+        alert('Refund failed: ' + err.message);
+        return;
+    }
+
+    await openPayment(currentPayment.id);
+    loadPayments();
+    loadMetrics();
+}
+
+async function handleConfirmCash(paymentId, attemptId) {
+    if (!confirm('Confirm that cash has been received?')) return;
+
+    try {
+        const res = await fetch('/api/payments/' + paymentId + '/confirm-cash', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ attemptId }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? 'Unknown error');
+    } catch (err) {
+        alert('Confirmation failed: ' + err.message);
+        return;
+    }
+
+    await openPayment(paymentId);
+    loadPayments();
+    loadMetrics();
+}
+
+async function handleCancel(id) {
+    if (!confirm('Cancel this payment? This cannot be undone.')) return;
+
+    try {
+        const res  = await fetch('/api/payments/' + id + '/cancel', { method: 'POST' });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? 'Unknown error');
+    } catch (err) {
+        alert('Cancel failed: ' + err.message);
+        return;
+    }
+
+    closeModal();
+    loadPayments();
+    loadMetrics();
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+// Default period: last 30 days
+setPeriod('30d');
+
+// Auto-refresh every 30 s
+setInterval(refreshAll, 30_000);
+</script>
+{% endblock %}

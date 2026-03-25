@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                  https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Infrastructure\Persistence\Entity\RefundEntity" table="refunds">
+        <id name="id" type="string" column="id" length="36"/>
+
+        <field name="paymentId"               type="string"  column="payment_id"               length="36"/>
+        <field name="originalAttemptId"       type="string"  column="original_attempt_id"      length="36"/>
+        <field name="providerName"            type="string"  column="provider_name"            length="100"/>
+        <field name="amountMinor"             type="integer" column="amount_minor"/>
+        <field name="amountCurrencyCode"      type="string"  column="amount_currency_code"     length="10"/>
+        <field name="amountCurrencyPrecision" type="integer" column="amount_currency_precision"/>
+        <field name="providerReference"       type="string"  column="provider_reference"       length="255" nullable="true"/>
+        <field name="status"                  type="string"  column="status"                   length="30"/>
+        <field name="providerStatus"          type="string"  column="provider_status"          length="100"/>
+        <field name="createdAt"               type="datetime_immutable" column="created_at"/>
+        <field name="methodType"              type="string"  column="method_type"              length="20"/>
+        <field name="data"                    type="json"    column="data"/>
+        <field name="version"                 type="integer" column="version"/>
+
+        <indexes>
+            <index name="idx_refund_payment_id"         columns="payment_id"/>
+            <index name="idx_refund_provider_reference" columns="provider_name, provider_reference"/>
+        </indexes>
+    </entity>
+
+</doctrine-mapping>

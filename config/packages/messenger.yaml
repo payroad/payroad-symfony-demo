@@ -1,0 +1,12 @@
+framework:
+    messenger:
+        default_bus: messenger.bus.default
+        buses:
+            messenger.bus.default: ~
+            event.bus:
+                default_middleware: allow_no_handlers
+        transports:
+            async:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+        routing:
+            'Payroad\Domain\DomainEvent': async

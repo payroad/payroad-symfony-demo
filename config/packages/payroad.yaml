@@ -1,0 +1,34 @@
+payroad:
+    providers:
+        stripe:
+            factory: Payroad\Provider\Stripe\StripeProviderFactory
+            config:
+                secret_key:     '%env(STRIPE_SECRET_KEY)%'
+                webhook_secret: '%env(STRIPE_WEBHOOK_SECRET)%'
+                publishable_key: '%env(STRIPE_PUBLISHABLE_KEY)%'
+
+        braintree:
+            factory: Payroad\Provider\Braintree\BraintreeProviderFactory
+            config:
+                environment: '%env(BRAINTREE_ENVIRONMENT)%'
+                merchant_id: '%env(BRAINTREE_MERCHANT_ID)%'
+                public_key:  '%env(BRAINTREE_PUBLIC_KEY)%'
+                private_key: '%env(BRAINTREE_PRIVATE_KEY)%'
+
+        nowpayments:
+            factory: Payroad\Provider\NOWPayments\NOWPaymentsProviderFactory
+            config:
+                api_key:      '%env(NOWPAYMENTS_API_KEY)%'
+                ipn_secret:   '%env(NOWPAYMENTS_IPN_SECRET)%'
+                callback_url: '%env(NOWPAYMENTS_IPN_CALLBACK_URL)%'
+                base_url:     '%env(NOWPAYMENTS_BASE_URL)%'
+
+        internal_cash:
+            factory: Payroad\Provider\InternalCash\InternalCashProviderFactory
+
+        coingate:
+            factory: Payroad\Provider\CoinGate\CoinGateProviderFactory
+            config:
+                api_key:      '%env(COINGATE_API_KEY)%'
+                callback_url: '%env(COINGATE_IPN_CALLBACK_URL)%'
+                base_url:     '%env(COINGATE_BASE_URL)%'
