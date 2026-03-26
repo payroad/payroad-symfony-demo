@@ -15,6 +15,7 @@ use Payroad\Domain\Payment\PaymentMetadata;
 use Payroad\Application\Exception\ProviderNotFoundException;
 use Payroad\Domain\PaymentFlow\Crypto\CryptoAttemptData;
 use Payroad\Port\Provider\Crypto\CryptoAttemptContext;
+
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -69,8 +70,8 @@ final class CryptoCheckoutController extends AbstractController
             'walletAddress' => $data->getWalletAddress(),
             'payCurrency'   => $data->getPayCurrency(),
             'payAmount'     => $data->getPayAmount(),
-            'memo'          => method_exists($data, 'getMemo')       ? $data->getMemo()       : null,
-            'paymentUrl'    => method_exists($data, 'getPaymentUrl') ? $data->getPaymentUrl() : null,
+            'memo'          => $data->getMemo(),
+            'paymentUrl'    => $data->getPaymentUrl(),
         ], Response::HTTP_CREATED);
     }
 }
