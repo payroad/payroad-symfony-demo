@@ -152,11 +152,39 @@
                         <span id="card-btn-text">Pay $10.00</span>
                     </button>
                 </form>
-                {# Mock card section — no SDK, instant charge #}
+                {# Mock card section #}
                 <div id="mock-section" class="hidden">
-                    <p class="text-sm text-slate-500 text-center mb-5">
-                        No card details required. Payment succeeds instantly.
-                    </p>
+                    <div class="space-y-3 mb-5">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Card number</label>
+                            <input id="mock-card-number" type="text" inputmode="numeric"
+                                   maxlength="19" placeholder="1234 5678 9012 3456"
+                                   class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50
+                                          text-sm text-slate-800 placeholder-slate-300
+                                          focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400
+                                          font-mono tracking-widest">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">Expiry</label>
+                                <input id="mock-card-expiry" type="text" inputmode="numeric"
+                                       maxlength="5" placeholder="MM/YY"
+                                       class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50
+                                              text-sm text-slate-800 placeholder-slate-300
+                                              focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400
+                                              font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">CVV</label>
+                                <input id="mock-card-cvv" type="text" inputmode="numeric"
+                                       maxlength="4" placeholder="123"
+                                       class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50
+                                              text-sm text-slate-800 placeholder-slate-300
+                                              focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400
+                                              font-mono">
+                            </div>
+                        </div>
+                    </div>
                     <button id="mock-submit-btn" type="button"
                             class="w-full flex items-center justify-center gap-2
                                    bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
@@ -694,6 +722,21 @@
     }
 
     // ── Mock card ─────────────────────────────────────────────────────────────
+
+    // Auto-format card number: spaces every 4 digits
+    document.getElementById('mock-card-number').addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g, '').slice(0, 16);
+        e.target.value = v.replace(/(.{4})/g, '$1 ').trim();
+        if (v.length === 16) document.getElementById('mock-card-expiry').focus();
+    });
+
+    // Auto-format expiry: insert slash after MM
+    document.getElementById('mock-card-expiry').addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\D/g, '').slice(0, 4);
+        if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+        e.target.value = v;
+        if (v.length === 5) document.getElementById('mock-card-cvv').focus();
+    });
 
     document.getElementById('mock-submit-btn').addEventListener('click', async () => {
         const btn = document.getElementById('mock-submit-btn');
