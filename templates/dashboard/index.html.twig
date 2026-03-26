@@ -301,7 +301,7 @@
         {# Modal actions #}
         <div id="modal-actions" class="px-6 py-4 border-t border-slate-100 flex items-center gap-3 flex-wrap shrink-0">
             <div id="refund-section" class="hidden items-center gap-2">
-                <input id="refund-amount" type="number" min="1" placeholder="Amount in cents"
+                <input id="refund-amount" type="number" min="0.01" step="0.01" placeholder="Amount (USD)"
                        class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 w-40 focus:outline-none focus:ring-2 focus:ring-amber-300">
                 <button onclick="submitRefund()"
                         class="text-sm bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2 rounded-lg transition-colors">
@@ -311,6 +311,10 @@
             <button id="btn-confirm-cash"
                     class="hidden text-sm bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
                 ✓ Confirm Cash Received
+            </button>
+            <button id="btn-confirm-p2p"
+                    class="hidden text-sm bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+                ✓ Confirm Transfer Received
             </button>
             <button id="btn-cancel"
                     class="hidden text-sm bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg transition-colors">
@@ -618,6 +622,7 @@ async function openPayment(id) {
     rs.classList.remove('flex');
     document.getElementById('btn-cancel').classList.add('hidden');
     document.getElementById('btn-confirm-cash').classList.add('hidden');
+    document.getElementById('btn-confirm-p2p').classList.add('hidden');
 
     let p;
     try {
@@ -635,12 +640,13 @@ async function openPayment(id) {
 
     // Refund section
     if (p.canRefund) {
-        const max = p.amount - p.refundedAmount;
+        const maxCents = p.amount - p.refundedAmount;
+        const maxDollars = (maxCents / 100).toFixed(2);
         const refundSection = document.getElementById('refund-section');
         refundSection.classList.remove('hidden');
         refundSection.classList.add('flex');
-        document.getElementById('refund-amount').value = max;
-        document.getElementById('refund-amount').max   = max;
+        document.getElementById('refund-amount').value = maxDollars;
+        document.getElementById('refund-amount').max   = maxDollars;
     }
 
     // Cancel button
@@ -650,7 +656,7 @@ async function openPayment(id) {
         btnCancel.onclick = () => handleCancel(p.id);
     }
 
-    // Confirm cash button — shown when a cash attempt is awaiting confirmation
+    // Confirm cash button
     const cashAttempt = (p.attempts ?? []).find(
         a => a.methodType === 'cash' && a.status === 'awaiting_confirmation'
     );
@@ -658,6 +664,16 @@ async function openPayment(id) {
         const btnCash = document.getElementById('btn-confirm-cash');
         btnCash.classList.remove('hidden');
         btnCash.onclick = () => handleConfirmCash(p.id, cashAttempt.id);
+    }
+
+    // Confirm P2P button
+    const p2pAttempt = (p.attempts ?? []).find(
+        a => a.methodType === 'p2p' && a.status === 'awaiting_confirmation'
+    );
+    if (p2pAttempt) {
+        const btnP2P = document.getElementById('btn-confirm-p2p');
+        btnP2P.classList.remove('hidden');
+        btnP2P.onclick = () => handleConfirmP2P(p.id, p2pAttempt.id);
     }
 }
 
@@ -784,14 +800,22 @@ function onModalBackdropClick(e) {
 
 async function submitRefund() {
     if (!currentPayment) return;
-    const amount = parseInt(document.getElementById('refund-amount').value);
-    if (!amount || amount <= 0) {
-        alert('Enter a valid refund amount (in cents).');
+    const dollars = parseFloat(document.getElementById('refund-amount').value);
+    const maxDollars = (currentPayment.amount - currentPayment.refundedAmount) / 100;
+    if (!dollars || dollars <= 0) {
+        alert('Enter a valid refund amount.');
         return;
     }
+    if (dollars > maxDollars) {
+        alert(`Maximum refundable amount is $${maxDollars.toFixed(2)}.`);
+        return;
+    }
+    const amount = Math.round(dollars * 100);
 
-    const isCash    = currentPayment.methodType === 'cash';
-    const endpoint  = isCash ? '/api/payments/cash/refunds' : '/api/refunds';
+    const methodType = currentPayment.methodType;
+    const endpoint   = methodType === 'cash' ? '/api/payments/cash/refunds'
+                     : methodType === 'p2p'  ? '/api/payments/p2p/refunds'
+                     : '/api/refunds';
 
     try {
         const res = await fetch(endpoint, {
@@ -816,6 +840,27 @@ async function handleConfirmCash(paymentId, attemptId) {
 
     try {
         const res = await fetch('/api/payments/' + paymentId + '/confirm-cash', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ attemptId }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? 'Unknown error');
+    } catch (err) {
+        alert('Confirmation failed: ' + err.message);
+        return;
+    }
+
+    await openPayment(paymentId);
+    loadPayments();
+    loadMetrics();
+}
+
+async function handleConfirmP2P(paymentId, attemptId) {
+    if (!confirm('Confirm that the bank transfer has been received?')) return;
+
+    try {
+        const res = await fetch('/api/payments/' + paymentId + '/confirm-p2p', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ attemptId }),
