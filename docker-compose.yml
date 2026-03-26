@@ -12,6 +12,7 @@ services:
       - ../braintree-provider:/braintree-provider
       - ../symfony-bridge:/symfony-bridge
       - ../internal-cash-provider:/internal-cash-provider
+      - ../internal-p2p-provider:/internal-p2p-provider
     environment:
       APP_ENV: dev
       SERVER_NAME: ":80"

@@ -26,6 +26,9 @@ payroad:
         internal_cash:
             factory: Payroad\Provider\InternalCash\InternalCashProviderFactory
 
+        internal_p2p:
+            factory: Payroad\Provider\InternalP2P\InternalP2PProviderFactory
+
         coingate:
             factory: Payroad\Provider\CoinGate\CoinGateProviderFactory
             config:

@@ -15,6 +15,7 @@
         "payroad/braintree-provider": "@dev",
         "payroad/coingate-provider": "@dev",
         "payroad/internal-cash-provider": "@dev",
+        "payroad/internal-p2p-provider": "@dev",
         "payroad/nowpayments-provider": "@dev",
         "payroad/payroad-core": "@dev",
         "payroad/stripe-provider": "@dev",
@@ -95,6 +96,10 @@
         {
             "type": "path",
             "url": "../internal-cash-provider"
+        },
+        {
+            "type": "path",
+            "url": "../internal-p2p-provider"
         },
         {
             "type": "path",

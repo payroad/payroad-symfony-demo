@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c1b79c8a58da65e23910837f0ecb52ca",
+    "content-hash": "16a8fc9a2257465455e9c1b81002735e",
     "packages": [
         {
             "name": "braintree/braintree_php",
@@ -1233,7 +1233,7 @@
             "dist": {
                 "type": "path",
                 "url": "../braintree-provider",
-                "reference": "f9a568f9015901d42c5cc6eeeb30ff2a38bad83e"
+                "reference": "4e73d3f4a12f5d3cbd09ab2fd4521a8e3c0dab4f"
             },
             "require": {
                 "braintree/braintree_php": "^6.0",
@@ -1265,7 +1265,7 @@
             "dist": {
                 "type": "path",
                 "url": "../coingate-provider",
-                "reference": "5f8868a34bb7527b6d21211e9f142931d8a8cd83"
+                "reference": "6af0c115ff260d40641c7840e6dafd49120a193a"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1296,7 +1296,7 @@
             "dist": {
                 "type": "path",
                 "url": "../internal-cash-provider",
-                "reference": "9eec5e2a9fff161dadeaf91418b96dff0e16b64f"
+                "reference": "5371e5c16004877f61d2c15de0151ab09706f978"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1322,12 +1322,38 @@
             }
         },
         {
+            "name": "payroad/internal-p2p-provider",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../internal-p2p-provider",
+                "reference": "e46e0dbad7f5411360dc630c450dec3681150fd9"
+            },
+            "require": {
+                "payroad/payroad-core": "@dev",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Payroad\\Provider\\InternalP2P\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Internal (mock) P2P payment provider for Payroad — for demo and testing",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "payroad/nowpayments-provider",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "../nowpayments-provider",
-                "reference": "a4f1bd594e9a2f01344f579dccc92bf7e98633c4"
+                "reference": "db6a1c0c9550adfa319f506c3cb8debbcb3acb5b"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1358,7 +1384,7 @@
             "dist": {
                 "type": "path",
                 "url": "../payroad-core",
-                "reference": "4ab8a78ee2e1b7babe43dd9ee03365b2809871f0"
+                "reference": "0d2f3ad0ad5cbcecbb0ffe0c0fe356f9b3f9d5e1"
             },
             "require": {
                 "php": "^8.2",
@@ -1397,7 +1423,7 @@
             "dist": {
                 "type": "path",
                 "url": "../stripe-provider",
-                "reference": "f9f82d79712e8c830e62eb031c9a63221599246b"
+                "reference": "7a61b5ff1858d28bc8b75678e73f05102d9441fe"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1429,7 +1455,7 @@
             "dist": {
                 "type": "path",
                 "url": "../symfony-bridge",
-                "reference": "30fcd034623008f8e066754d46f7008fba3575cb"
+                "reference": "653b99a92a247f847b22efc580e2fc46e4a18ec9"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -6383,6 +6409,7 @@
         "payroad/braintree-provider": 20,
         "payroad/coingate-provider": 20,
         "payroad/internal-cash-provider": 20,
+        "payroad/internal-p2p-provider": 20,
         "payroad/nowpayments-provider": 20,
         "payroad/payroad-core": 20,
         "payroad/stripe-provider": 20,
