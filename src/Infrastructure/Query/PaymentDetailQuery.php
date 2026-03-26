@@ -78,9 +78,9 @@ final class PaymentDetailQuery
         $terminalStatuses = ['succeeded', 'failed', 'canceled', 'refunded', 'expired'];
         $isTerminal = in_array($row['status'], $terminalStatuses, true);
 
-        // Refund is available for card and cash payments in a refundable state
+        // Refund is available for card, cash and p2p payments in a refundable state
         $canRefund = in_array($row['status'], ['succeeded', 'partially_refunded'], true)
-            && in_array($row['method_type'] ?? '', ['card', 'cash'], true);
+            && in_array($row['method_type'] ?? '', ['card', 'cash', 'p2p'], true);
 
         // Cancel is available for any non-terminal payment that has no active attempts
         $canCancel = !$isTerminal;
