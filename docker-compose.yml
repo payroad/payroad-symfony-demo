@@ -11,6 +11,7 @@ services:
       - ../coingate-provider:/coingate-provider
       - ../braintree-provider:/braintree-provider
       - ../symfony-bridge:/symfony-bridge
+      - ../internal-card-provider:/internal-card-provider
       - ../internal-cash-provider:/internal-cash-provider
       - ../internal-p2p-provider:/internal-p2p-provider
     environment:

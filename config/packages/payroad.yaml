@@ -23,6 +23,18 @@ payroad:
                 callback_url: '%env(NOWPAYMENTS_IPN_CALLBACK_URL)%'
                 base_url:     '%env(NOWPAYMENTS_BASE_URL)%'
 
+        internal_card:
+            factory: Payroad\Provider\InternalCard\InternalCardProviderFactory
+            config:
+                provider_name: internal_card
+                mode: charge
+
+        internal_card_auth:
+            factory: Payroad\Provider\InternalCard\InternalCardProviderFactory
+            config:
+                provider_name: internal_card_auth
+                mode: authorize
+
         internal_cash:
             factory: Payroad\Provider\InternalCash\InternalCashProviderFactory
 

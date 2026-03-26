@@ -97,7 +97,7 @@
             {# Processor selector #}
             <div class="bg-white rounded-2xl border border-slate-200 px-4 py-4">
                 <p class="text-xs uppercase tracking-widest text-slate-400 font-medium mb-3">Processor</p>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-3 gap-2">
                     <button id="proc-stripe"
                             class="proc-tab py-2 px-3 rounded-xl border-2 border-indigo-500 bg-indigo-50
                                    text-sm font-semibold text-indigo-700 transition-colors">
@@ -107,6 +107,11 @@
                             class="proc-tab py-2 px-3 rounded-xl border-2 border-slate-200
                                    text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors">
                         Braintree
+                    </button>
+                    <button id="proc-mock"
+                            class="proc-tab py-2 px-3 rounded-xl border-2 border-slate-200
+                                   text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors">
+                        Mock
                     </button>
                 </div>
             </div>
@@ -147,6 +152,25 @@
                         <span id="card-btn-text">Pay $10.00</span>
                     </button>
                 </form>
+                {# Mock card section — no SDK, instant charge #}
+                <div id="mock-section" class="hidden">
+                    <p class="text-sm text-slate-500 text-center mb-5">
+                        No card details required. Payment succeeds instantly.
+                    </p>
+                    <button id="mock-submit-btn" type="button"
+                            class="w-full flex items-center justify-center gap-2
+                                   bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800
+                                   disabled:opacity-60 disabled:cursor-not-allowed
+                                   text-white text-sm font-semibold py-3 px-6 rounded-xl
+                                   transition-colors duration-150">
+                        <svg id="mock-spinner" class="hidden animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span id="mock-btn-text">Pay $10.00</span>
+                    </button>
+                </div>
+
                 {# Braintree Drop-in container #}
                 <div id="braintree-section" class="hidden">
                     <div id="braintree-loading" class="space-y-3 pb-2">
@@ -505,13 +529,14 @@
             stripeElements.update({ amount: getAmountCents() });
         }
         document.getElementById('braintree-btn-text').textContent = 'Pay ' + getAmountDisplay();
+        document.getElementById('mock-btn-text').textContent = 'Pay ' + getAmountDisplay();
     });
 
-    // ── Processor tabs (Stripe / Braintree) ───────────────────────────────────
+    // ── Processor tabs (Stripe / Braintree / Mock) ────────────────────────────
     function switchProcessor(proc) {
         activeProcessor = proc;
-        ['stripe', 'braintree'].forEach(p => {
-            const tab   = document.getElementById('proc-' + p);
+        ['stripe', 'braintree', 'mock'].forEach(p => {
+            const tab    = document.getElementById('proc-' + p);
             const active = p === proc;
             tab.classList.toggle('border-indigo-500', active);
             tab.classList.toggle('bg-indigo-50',       active);
@@ -521,26 +546,29 @@
         });
 
         const isStripe    = proc === 'stripe';
+        const isBraintree = proc === 'braintree';
+        const isMock      = proc === 'mock';
+
         document.getElementById('card-loading').classList.toggle('hidden', !isStripe || stripeReady);
         document.getElementById('card-form').classList.toggle('hidden', !isStripe || !stripeReady);
-        document.getElementById('braintree-section').classList.toggle('hidden', isStripe);
-        document.getElementById('braintree-hints').classList.toggle('hidden', isStripe);
+        document.getElementById('braintree-section').classList.toggle('hidden', !isBraintree);
+        document.getElementById('braintree-hints').classList.toggle('hidden', !isBraintree);
+        document.getElementById('mock-section').classList.toggle('hidden', !isMock);
         document.querySelector('.rounded-2xl.border.border-amber-200.bg-amber-50').classList.toggle('hidden', !isStripe);
 
-        document.getElementById('footer-label').innerHTML = isStripe
-            ? 'Secured by <span class="font-medium">Stripe</span>'
-            : 'Secured by <span class="font-medium">Braintree</span>';
+        document.getElementById('footer-label').innerHTML = isMock
+            ? 'Simulated charge — <span class="font-medium">no real card</span>'
+            : isStripe
+                ? 'Secured by <span class="font-medium">Stripe</span>'
+                : 'Secured by <span class="font-medium">Braintree</span>';
 
-        if (!isStripe && !braintreeDropin) {
-            initBraintree();
-        }
-        if (isStripe && !stripeReady) {
-            initStripe();
-        }
+        if (isBraintree && !braintreeDropin) initBraintree();
+        if (isStripe && !stripeReady)        initStripe();
     }
 
     document.getElementById('proc-stripe').addEventListener('click',    () => switchProcessor('stripe'));
     document.getElementById('proc-braintree').addEventListener('click', () => switchProcessor('braintree'));
+    document.getElementById('proc-mock').addEventListener('click',      () => switchProcessor('mock'));
 
     // ── Method tabs ───────────────────────────────────────────────────────────
     function switchMethod(method) {
@@ -664,6 +692,36 @@
             document.getElementById('card-btn-text').textContent = 'Pay ' + getAmountDisplay();
         }
     }
+
+    // ── Mock card ─────────────────────────────────────────────────────────────
+
+    document.getElementById('mock-submit-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('mock-submit-btn');
+        btn.disabled = true;
+        document.getElementById('mock-btn-text').textContent = 'Processing…';
+        document.getElementById('mock-spinner').classList.remove('hidden');
+
+        try {
+            const res = await fetch('/api/payments', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    amount:     getAmountCents(),
+                    currency:   'USD',
+                    customerId: getCustomerName(),
+                    provider:   'internal_card',
+                }),
+            });
+            if (!res.ok) throw new Error('Payment failed (' + res.status + ')');
+            const { paymentId } = await res.json();
+            window.location.href = '/checkout/return?paymentId=' + paymentId + '&redirect_status=succeeded';
+        } catch (err) {
+            btn.disabled = false;
+            document.getElementById('mock-btn-text').textContent = 'Pay ' + getAmountDisplay();
+            document.getElementById('mock-spinner').classList.add('hidden');
+            alert(err.message);
+        }
+    });
 
     function showCardError(msg) {
         document.getElementById('card-error-text').textContent = msg;

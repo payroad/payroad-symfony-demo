@@ -14,6 +14,7 @@
         "doctrine/orm": "^3.2",
         "payroad/braintree-provider": "@dev",
         "payroad/coingate-provider": "@dev",
+        "payroad/internal-card-provider": "@dev",
         "payroad/internal-cash-provider": "@dev",
         "payroad/internal-p2p-provider": "@dev",
         "payroad/nowpayments-provider": "@dev",
@@ -92,6 +93,10 @@
         {
             "type": "path",
             "url": "../coingate-provider"
+        },
+        {
+            "type": "path",
+            "url": "../internal-card-provider"
         },
         {
             "type": "path",
