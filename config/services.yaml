@@ -35,6 +35,8 @@ services:
     Payroad\Application\UseCase\Card\SavePaymentMethodUseCase: ~
     Payroad\Application\UseCase\Crypto\InitiateCryptoAttemptUseCase: ~
     Payroad\Application\UseCase\Crypto\InitiateCryptoRefundUseCase: ~
+    Payroad\Application\UseCase\P2P\InitiateP2PAttemptUseCase: ~
+    Payroad\Application\UseCase\P2P\InitiateP2PRefundUseCase: ~
     Payroad\Application\UseCase\Cash\InitiateCashAttemptUseCase: ~
     Payroad\Application\UseCase\Cash\InitiateCashRefundUseCase: ~
     Payroad\Application\UseCase\Webhook\HandleWebhookUseCase: ~

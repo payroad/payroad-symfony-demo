@@ -11,9 +11,13 @@ use Payroad\Domain\Attempt\PaymentAttemptId;
 use Payroad\Domain\Money\Currency;
 use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\PaymentId;
+use Payroad\Domain\PaymentFlow\Card\CardAttemptData;
 use Payroad\Domain\PaymentFlow\Card\CardPaymentAttempt;
+use Payroad\Domain\PaymentFlow\Cash\CashAttemptData;
 use Payroad\Domain\PaymentFlow\Cash\CashPaymentAttempt;
+use Payroad\Domain\PaymentFlow\Crypto\CryptoAttemptData;
 use Payroad\Domain\PaymentFlow\Crypto\CryptoPaymentAttempt;
+use Payroad\Domain\PaymentFlow\P2P\P2PAttemptData;
 use Payroad\Domain\PaymentFlow\P2P\P2PPaymentAttempt;
 
 final class PaymentAttemptAssembler
@@ -46,6 +50,22 @@ final class PaymentAttemptAssembler
         $paymentId = PaymentId::fromUuid($entity->paymentId);
         $status   = AttemptStatus::from($entity->status);
         $class    = $entity->data['_class'] ?? throw new \RuntimeException('Missing _class in attempt data.');
+
+        $expectedDataClass = match ($entity->methodType) {
+            'card'   => CardAttemptData::class,
+            'crypto' => CryptoAttemptData::class,
+            'p2p'    => P2PAttemptData::class,
+            'cash'   => CashAttemptData::class,
+            default  => throw new \RuntimeException("Unknown attempt method type: '{$entity->methodType}'."),
+        };
+
+        if (!is_a($class, $expectedDataClass, true)) {
+            throw new \RuntimeException(
+                "Attempt data class mismatch for method type '{$entity->methodType}': "
+                . "expected {$expectedDataClass}, got {$class}."
+            );
+        }
+
         $data     = $class::fromArray(array_diff_key($entity->data, ['_class' => true]));
 
         $attempt = match ($entity->methodType) {
@@ -57,7 +77,6 @@ final class PaymentAttemptAssembler
                             $status, $entity->providerStatus, $entity->providerReference, $entity->createdAt),
             'cash'   => new CashPaymentAttempt($id, $paymentId, $entity->providerName, $amount, $data,
                             $status, $entity->providerStatus, $entity->providerReference, $entity->createdAt),
-            default  => throw new \RuntimeException("Unknown attempt method type: '{$entity->methodType}'."),
         };
 
         $attempt->setVersion($entity->version);

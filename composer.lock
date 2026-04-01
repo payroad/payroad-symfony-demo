@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "16a8fc9a2257465455e9c1b81002735e",
+    "content-hash": "e60bbee1caced9781f01c1457e199775",
     "packages": [
         {
             "name": "braintree/braintree_php",
@@ -1265,7 +1265,7 @@
             "dist": {
                 "type": "path",
                 "url": "../coingate-provider",
-                "reference": "6af0c115ff260d40641c7840e6dafd49120a193a"
+                "reference": "9289b1de6ff345630966fef4e476a4630ab1904c"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1291,12 +1291,38 @@
             }
         },
         {
+            "name": "payroad/internal-card-provider",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../internal-card-provider",
+                "reference": "a54346404b1bcd863d1b41f7c4d8bbe7eaf32547"
+            },
+            "require": {
+                "payroad/payroad-core": "@dev",
+                "php": "^8.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Payroad\\Provider\\InternalCard\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Internal (mock) card payment provider for Payroad — for demo and testing",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "payroad/internal-cash-provider",
             "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "../internal-cash-provider",
-                "reference": "5371e5c16004877f61d2c15de0151ab09706f978"
+                "reference": "74992b7799892e967bfd67e08187e9c1f07d3778"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1327,7 +1353,7 @@
             "dist": {
                 "type": "path",
                 "url": "../internal-p2p-provider",
-                "reference": "e46e0dbad7f5411360dc630c450dec3681150fd9"
+                "reference": "e44797a8831e463e4e9f607aa8f407c8ed7f03ac"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1353,7 +1379,7 @@
             "dist": {
                 "type": "path",
                 "url": "../nowpayments-provider",
-                "reference": "db6a1c0c9550adfa319f506c3cb8debbcb3acb5b"
+                "reference": "8bb6e245e7e2f073909171e344fbe82f5f6706bf"
             },
             "require": {
                 "payroad/payroad-core": "@dev",
@@ -1384,7 +1410,7 @@
             "dist": {
                 "type": "path",
                 "url": "../payroad-core",
-                "reference": "0d2f3ad0ad5cbcecbb0ffe0c0fe356f9b3f9d5e1"
+                "reference": "e3c0f8285856f215f74ac951ec197a9f241be1e2"
             },
             "require": {
                 "php": "^8.2",
@@ -6408,6 +6434,7 @@
     "stability-flags": {
         "payroad/braintree-provider": 20,
         "payroad/coingate-provider": 20,
+        "payroad/internal-card-provider": 20,
         "payroad/internal-cash-provider": 20,
         "payroad/internal-p2p-provider": 20,
         "payroad/nowpayments-provider": 20,
