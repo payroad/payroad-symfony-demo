@@ -71,7 +71,7 @@ final class P2PCheckoutController extends AbstractController
             ),
         ));
 
-        /** @var \Payroad\Domain\PaymentFlow\P2P\P2PAttemptData $data */
+        /** @var \Payroad\Domain\Channel\P2P\P2PAttemptData $data */
         $data = $attempt->getData();
 
         return $this->json([

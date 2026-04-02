@@ -6,7 +6,7 @@ namespace App\Infrastructure\Persistence\Assembler;
 
 use App\Infrastructure\Persistence\Entity\SavedPaymentMethodEntity;
 use Payroad\Domain\Payment\CustomerId;
-use Payroad\Domain\PaymentFlow\Card\CardSavedPaymentMethod;
+use Payroad\Domain\Channel\Card\CardSavedPaymentMethod;
 use Payroad\Domain\SavedPaymentMethod\SavedPaymentMethod;
 use Payroad\Domain\SavedPaymentMethod\SavedPaymentMethodId;
 use Payroad\Domain\SavedPaymentMethod\SavedPaymentMethodStatus;

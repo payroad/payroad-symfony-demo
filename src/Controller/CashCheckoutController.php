@@ -23,7 +23,7 @@ use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\CustomerId;
 use Payroad\Domain\Payment\PaymentId;
 use Payroad\Domain\Payment\PaymentMetadata;
-use Payroad\Domain\PaymentFlow\Cash\CashAttemptData;
+use Payroad\Domain\Channel\Cash\CashAttemptData;
 use Payroad\Port\Provider\Cash\CashAttemptContext;
 use Payroad\Port\Provider\WebhookResult;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

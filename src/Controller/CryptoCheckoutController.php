@@ -13,7 +13,7 @@ use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\CustomerId;
 use Payroad\Domain\Payment\PaymentMetadata;
 use Payroad\Application\Exception\ProviderNotFoundException;
-use Payroad\Domain\PaymentFlow\Crypto\CryptoAttemptData;
+use Payroad\Domain\Channel\Crypto\CryptoAttemptData;
 use Payroad\Port\Provider\Crypto\CryptoAttemptContext;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

@@ -20,7 +20,7 @@ use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\CustomerId;
 use Payroad\Domain\Payment\PaymentId;
 use Payroad\Domain\Payment\PaymentMetadata;
-use Payroad\Domain\PaymentFlow\Card\CardAttemptData;
+use Payroad\Domain\Channel\Card\CardAttemptData;
 use Payroad\Port\Provider\Card\CardAttemptContext;
 use Payroad\Port\Provider\Card\OneStepCardProviderInterface;
 use Payroad\Port\Provider\Card\TwoStepCardProviderInterface;

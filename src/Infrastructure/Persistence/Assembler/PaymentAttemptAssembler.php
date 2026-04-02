@@ -11,14 +11,14 @@ use Payroad\Domain\Attempt\PaymentAttemptId;
 use Payroad\Domain\Money\Currency;
 use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\PaymentId;
-use Payroad\Domain\PaymentFlow\Card\CardAttemptData;
-use Payroad\Domain\PaymentFlow\Card\CardPaymentAttempt;
-use Payroad\Domain\PaymentFlow\Cash\CashAttemptData;
-use Payroad\Domain\PaymentFlow\Cash\CashPaymentAttempt;
-use Payroad\Domain\PaymentFlow\Crypto\CryptoAttemptData;
-use Payroad\Domain\PaymentFlow\Crypto\CryptoPaymentAttempt;
-use Payroad\Domain\PaymentFlow\P2P\P2PAttemptData;
-use Payroad\Domain\PaymentFlow\P2P\P2PPaymentAttempt;
+use Payroad\Domain\Channel\Card\CardAttemptData;
+use Payroad\Domain\Channel\Card\CardPaymentAttempt;
+use Payroad\Domain\Channel\Cash\CashAttemptData;
+use Payroad\Domain\Channel\Cash\CashPaymentAttempt;
+use Payroad\Domain\Channel\Crypto\CryptoAttemptData;
+use Payroad\Domain\Channel\Crypto\CryptoPaymentAttempt;
+use Payroad\Domain\Channel\P2P\P2PAttemptData;
+use Payroad\Domain\Channel\P2P\P2PPaymentAttempt;
 
 final class PaymentAttemptAssembler
 {
