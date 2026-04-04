@@ -18,6 +18,7 @@ use Payroad\Application\UseCase\Payment\CreatePaymentUseCase;
 use Payroad\Application\UseCase\Webhook\HandleWebhookCommand;
 use Payroad\Application\UseCase\Webhook\HandleWebhookUseCase;
 use Payroad\Domain\Attempt\AttemptStatus;
+use Payroad\Domain\Attempt\PaymentAttemptId;
 use Payroad\Domain\Money\Currency;
 use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\CustomerId;
@@ -64,6 +65,7 @@ final class P2PCheckoutController extends AbstractController
         ));
 
         $attempt = $this->initiateAttempt->execute(new InitiateP2PAttemptCommand(
+            attemptId:    PaymentAttemptId::generate(),
             paymentId:    $payment->getId(),
             providerName: $providerName,
             context:      new P2PAttemptContext(

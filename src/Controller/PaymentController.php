@@ -16,6 +16,7 @@ use Payroad\Application\UseCase\Payment\CreatePaymentCommand;
 use Payroad\Application\UseCase\Payment\CreatePaymentUseCase;
 use Payroad\Application\UseCase\Webhook\HandleWebhookCommand;
 use Payroad\Application\UseCase\Webhook\HandleWebhookUseCase;
+use Payroad\Domain\Attempt\PaymentAttemptId;
 use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\CustomerId;
 use Payroad\Domain\Payment\PaymentId;
@@ -68,6 +69,7 @@ final class PaymentController extends AbstractController
         $providerName = $body['provider'] ?? 'stripe';
 
         $attempt = $this->initiateCardAttempt->execute(new InitiateCardAttemptCommand(
+            attemptId:    PaymentAttemptId::generate(),
             paymentId:    $payment->getId(),
             providerName: $providerName,
             context:      new CardAttemptContext(

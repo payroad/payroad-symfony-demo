@@ -9,6 +9,7 @@ use Payroad\Application\UseCase\Crypto\InitiateCryptoAttemptUseCase;
 use Payroad\Application\UseCase\Payment\CreatePaymentCommand;
 use Payroad\Application\UseCase\Payment\CreatePaymentUseCase;
 use App\Infrastructure\Currency\KnownCurrencies;
+use Payroad\Domain\Attempt\PaymentAttemptId;
 use Payroad\Domain\Money\Money;
 use Payroad\Domain\Payment\CustomerId;
 use Payroad\Domain\Payment\PaymentMetadata;
@@ -53,6 +54,7 @@ final class CryptoCheckoutController extends AbstractController
 
         try {
             $attempt = $this->initiateCryptoAttempt->execute(new InitiateCryptoAttemptCommand(
+                attemptId:    PaymentAttemptId::generate(),
                 paymentId:    $payment->getId(),
                 providerName: $provider,
                 context:      new CryptoAttemptContext(network: $network),
